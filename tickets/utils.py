@@ -275,22 +275,10 @@ def generate_ticket_pdf(ticket) -> bytes:
         c.setFillColor(colors.HexColor('#f5f0e8'))
         c.rect(0, 0, TICKET_W, TICKET_H, fill=1, stroke=0)
 
-    # ── 2. Guest name overlay (TICKET HOLDER strip) ─────────────────────
-    guest_name = ticket.guest.full_name.upper()
-
-    # Font size scales with name length
-    if   len(guest_name) <= 14: name_pt = 16
-    elif len(guest_name) <= 20: name_pt = 14
-    elif len(guest_name) <= 28: name_pt = 12
-    else:                        name_pt = 10
-
-    name_x = TICKET_W * name_x_pct
-    name_y = TICKET_H * name_y_pct
-
-    # Draw name using the per-ticket name_color from config
-    c.setFillColor(name_color)
-    c.setFont('Helvetica-Bold', name_pt)
-    c.drawString(name_x, name_y, guest_name[:40])
+    # ── 2. Guest name overlay — intentionally blank (plain ticket mode)
+    # Name is not printed on the ticket. The TICKET HOLDER strip on the
+    # background image is left empty. Personal info is stored in the system
+    # and verified via QR code at the gate.
 
     # ── 3. QR code overlay (stub QR placeholder box) ────────────────────
     # The gold-bordered empty box on the stub.

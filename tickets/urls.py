@@ -67,4 +67,7 @@ urlpatterns = [
 
     # Verification log
     path('logs/', views.verification_log, name='verification_log'),
+
+    # Plain tickets bulk download
+    path('tickets/download-all/', views.download_plain_tickets, name='download_plain_tickets'),
 ]

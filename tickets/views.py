@@ -956,3 +956,120 @@ def verification_log(request):
         'logs': logs,
         'reentry_logs': reentry_logs,
     })
+
+
+# ===========================================================================
+# PLAIN TICKETS — BULK DOWNLOAD (PNG ZIP)
+# ===========================================================================
+
+@login_required
+@ticket_admin_required
+def download_plain_tickets(request):
+    """
+    Generate PNG ticket images for all plain tickets (linked to the
+    'Pandora Guest' placeholder) and return them as a ZIP file.
+    Each PNG has the ticket background + QR code, no personal info.
+    """
+    import io as _io
+    import os as _os
+    import zipfile as _zipfile
+
+    import qrcode as _qrcode
+    from PIL import Image as _Image
+    from django.conf import settings as _settings
+
+    SITE_URL = 'https://pandoraaward8th.onrender.com'
+    IMG_DIR  = _os.path.join(_settings.BASE_DIR, 'static', 'img')
+
+    # QR overlay config per ticket type background
+    QR_CFG = {
+        'REGULAR (1).PNG':                            {'qr_cx_pct': 0.858, 'qr_cy_pct': 0.607, 'qr_w_pct': 0.1384, 'qr_h_pct': 0.2140},
+        'VIP.jpeg':                                   {'qr_cx_pct': 0.870, 'qr_cy_pct': 0.607, 'qr_w_pct': 0.1384, 'qr_h_pct': 0.2140},
+        'Pandora Awards SPecial guestTicket Poster.png': {'qr_cx_pct': 0.870, 'qr_cy_pct': 0.607, 'qr_w_pct': 0.1384, 'qr_h_pct': 0.2140},
+        'Pandora Awards Table for Ten Ticket.png':    {'qr_cx_pct': 0.870, 'qr_cy_pct': 0.607, 'qr_w_pct': 0.1384, 'qr_h_pct': 0.2140},
+    }
+
+    # Ticket type → background mapping
+    TYPE_BG = {
+        'Regular':            'REGULAR (1).PNG',
+        'VIP':                'VIP.jpeg',
+        'Special Guest Seat':  'Pandora Awards SPecial guestTicket Poster.png',
+        'Table of Ten':        'Pandora Awards Table for Ten Ticket.png',
+    }
+
+    # Get all plain tickets
+    placeholder = Guest.objects.filter(full_name='Pandora Guest', phone_number='0000000000').first()
+    if not placeholder:
+        messages.error(request, 'No plain tickets found. Run generate_plain_tickets first.')
+        return redirect('dashboard')
+
+    tickets = Ticket.objects.filter(guest=placeholder).select_related('ticket_type').order_by('ticket_type__name', 'ticket_number')
+
+    if not tickets.exists():
+        messages.error(request, 'No plain tickets found in the database.')
+        return redirect('dashboard')
+
+    # Build ZIP in memory
+    buf = _io.BytesIO()
+    zf = _zipfile.ZipFile(buf, 'w', _zipfile.ZIP_DEFLATED)
+
+    count = 0
+    for ticket in tickets:
+        ttype_name = ticket.ticket_type.name
+        bg_file = TYPE_BG.get(ttype_name, 'REGULAR (1).PNG')
+        bg_path = _os.path.join(IMG_DIR, bg_file)
+
+        if not _os.path.exists(bg_path):
+            # Skip if background missing
+            continue
+
+        cfg = QR_CFG.get(bg_file, QR_CFG['REGULAR (1).PNG'])
+
+        # Load background
+        bg = _Image.open(bg_path).convert('RGBA')
+        w, h = bg.size
+
+        # QR dimensions
+        qr_w = int(w * cfg['qr_w_pct'])
+        qr_h = int(h * cfg['qr_h_pct'])
+        qr_size = min(qr_w, qr_h)
+
+        # QR position (centre)
+        qr_cx = int(w * cfg['qr_cx_pct'])
+        qr_cy = int(h * cfg['qr_cy_pct'])
+        qr_x = qr_cx - qr_size // 2
+        qr_y = qr_cy - qr_size // 2
+
+        # Generate QR code
+        verify_url = f"{SITE_URL}/verify/qr/{ticket.qr_token}/"
+        qr = _qrcode.QRCode(
+            version=1,
+            error_correction=_qrcode.constants.ERROR_CORRECT_H,
+            box_size=10,
+            border=2,
+        )
+        qr.add_data(verify_url)
+        qr.make(fit=True)
+        qr_img = qr.make_image(fill_color="black", back_color="white").convert('RGBA')
+        qr_img = qr_img.resize((qr_size, qr_size), _Image.LANCZOS)
+
+        # Paste QR onto background
+        bg.paste(qr_img, (qr_x, qr_y))
+
+        # Save to ZIP
+        folder = ttype_name.replace(' ', '_')
+        arcname = f"{folder}/{ticket.ticket_number}.png"
+
+        img_bytes = _io.BytesIO()
+        bg.convert('RGB').save(img_bytes, 'PNG', dpi=(300, 300))
+        img_bytes.seek(0)
+        zf.writestr(arcname, img_bytes.getvalue())
+
+        count += 1
+
+    zf.close()
+    buf.seek(0)
+
+    response = HttpResponse(buf.getvalue(), content_type='application/zip')
+    response['Content-Disposition'] = 'attachment; filename="Pandora_Plain_Tickets.zip"'
+    return response

@@ -89,4 +89,54 @@ class Command(BaseCommand):
         else:
             self.stdout.write('  — Admin account already exists.')
 
+        # ── Plain tickets (no personal info) ──────────────────────────────
+        self._seed_plain_tickets()
+
         self.stdout.write(self.style.SUCCESS('\nSeed complete. 🏆'))
+
+    def _seed_plain_tickets(self):
+        """Create plain tickets linked to a placeholder guest."""
+        from tickets.models import Guest, Ticket
+
+        PLAN = [
+            ('Regular',            200),
+            ('VIP',                150),
+            ('Special Guest Seat',   70),
+        ]
+
+        placeholder, created = Guest.objects.get_or_create(
+            full_name='Pandora Guest',
+            phone_number='0000000000',
+            defaults={'registration_source': Guest.RegistrationSource.PRE_REGISTERED},
+        )
+
+        event = Event.objects.filter(active=True).first()
+        if not event:
+            return
+
+        total_created = 0
+        for type_name, count in PLAN:
+            ttype = TicketType.objects.filter(name=type_name).first()
+            if not ttype:
+                continue
+            existing = Ticket.objects.filter(guest=placeholder, ticket_type=ttype).count()
+            needed = count - existing
+            for _ in range(needed):
+                Ticket.objects.create(
+                    guest=placeholder,
+                    event=event,
+                    ticket_type=ttype,
+                    status=Ticket.Status.ACTIVE,
+                )
+                total_created += 1
+            if needed > 0:
+                self.stdout.write(self.style.SUCCESS(
+                    f'  ✔ Created {needed} {type_name} plain tickets'
+                ))
+            else:
+                self.stdout.write(f'  — {type_name}: already have {existing}/{count}')
+
+        if total_created:
+            self.stdout.write(self.style.SUCCESS(
+                f'  ✔ {total_created} new plain tickets created'
+            ))

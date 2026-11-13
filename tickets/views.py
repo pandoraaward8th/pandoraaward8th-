@@ -997,17 +997,22 @@ def download_plain_tickets(request):
         'Table of Ten':        'Pandora Awards Table for Ten Ticket.png',
     }
 
-    # Get all plain tickets
+    # Get plain tickets — filtered by type if specified
     placeholder = Guest.objects.filter(full_name='Pandora Guest', phone_number='0000000000').first()
     if not placeholder:
         messages.error(request, 'No plain tickets found. Run generate_plain_tickets first.')
         return redirect('dashboard')
 
-    tickets = Ticket.objects.filter(guest=placeholder).select_related('ticket_type').order_by('ticket_type__name', 'ticket_number')
+    type_filter = request.GET.get('type', '').strip()
+    tickets = Ticket.objects.filter(guest=placeholder).select_related('ticket_type').order_by('ticket_number')
+    if type_filter:
+        tickets = tickets.filter(ticket_type__name=type_filter)
 
     if not tickets.exists():
-        messages.error(request, 'No plain tickets found in the database.')
+        messages.error(request, f'No plain tickets found{" for type: " + type_filter if type_filter else ""}.')
         return redirect('dashboard')
+
+    zip_name = f"Pandora_{type_filter.replace(' ', '_')}_Tickets.zip" if type_filter else "Pandora_Plain_Tickets.zip"
 
     # Build ZIP in memory
     buf = _io.BytesIO()
@@ -1071,5 +1076,5 @@ def download_plain_tickets(request):
     buf.seek(0)
 
     response = HttpResponse(buf.getvalue(), content_type='application/zip')
-    response['Content-Disposition'] = 'attachment; filename="Pandora_Plain_Tickets.zip"'
+    response['Content-Disposition'] = f'attachment; filename="{zip_name}"'
     return response

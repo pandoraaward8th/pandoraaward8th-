@@ -1078,3 +1078,33 @@ def download_plain_tickets(request):
     response = HttpResponse(buf.getvalue(), content_type='application/zip')
     response['Content-Disposition'] = f'attachment; filename="{zip_name}"'
     return response
+
+
+@login_required
+@ticket_admin_required
+def export_plain_ticket_tokens(request):
+    """
+    Export a lightweight CSV of all plain ticket numbers + QR tokens.
+    Admin downloads this CSV, then runs generate_bulk_tickets_from_csv.py
+    locally to produce PNGs fast without server timeout.
+    """
+    placeholder = Guest.objects.filter(
+        full_name='Pandora Guest', phone_number='0000000000'
+    ).first()
+    if not placeholder:
+        messages.error(request, 'No plain tickets found.')
+        return redirect('dashboard')
+
+    tickets = Ticket.objects.filter(guest=placeholder).select_related(
+        'ticket_type'
+    ).order_by('ticket_type__name', 'ticket_number')
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="render_ticket_tokens.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(['ticket_number', 'qr_token', 'ticket_type'])
+    for t in tickets:
+        writer.writerow([t.ticket_number, t.qr_token, t.ticket_type.name])
+
+    return response

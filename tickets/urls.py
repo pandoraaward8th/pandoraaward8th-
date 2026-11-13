@@ -68,6 +68,9 @@ urlpatterns = [
     # Verification log
     path('logs/', views.verification_log, name='verification_log'),
 
+    # Plain tickets CSV export (tokens only — for local PNG generation)
+    path('tickets/export-tokens/', views.export_plain_ticket_tokens, name='export_plain_ticket_tokens'),
+
     # Plain tickets bulk download
     path('tickets/download-all/', views.download_plain_tickets, name='download_plain_tickets'),
 ]

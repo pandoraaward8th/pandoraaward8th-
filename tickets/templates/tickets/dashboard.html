@@ -111,16 +111,10 @@
       <!-- Plain ticket downloads — one per type to avoid timeout -->
       <div style="border-top:1px solid var(--dark3);margin-top:0.5rem;padding-top:0.5rem;">
         <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:0.4rem;">
-          <i class="bi bi-ticket-perforated"></i> Download Plain Tickets
+          <i class="bi bi-ticket-perforated"></i> Plain Tickets
         </div>
-        <a href="{% url 'download_plain_tickets' %}?type=Regular" class="btn-outline-gold" style="font-size:0.8rem;margin-bottom:0.3rem;">
-          <i class="bi bi-download"></i> Regular (200)
-        </a>
-        <a href="{% url 'download_plain_tickets' %}?type=VIP" class="btn-outline-gold" style="font-size:0.8rem;margin-bottom:0.3rem;">
-          <i class="bi bi-download"></i> VIP (150)
-        </a>
-        <a href="{% url 'download_plain_tickets' %}?type=Special+Guest+Seat" class="btn-outline-gold" style="font-size:0.8rem;">
-          <i class="bi bi-download"></i> Special Guest (70)
+        <a href="{% url 'export_plain_ticket_tokens' %}" class="btn-gold" style="font-size:0.8rem;">
+          <i class="bi bi-download"></i> Export Ticket Tokens CSV
         </a>
       </div>
       {% endif %}

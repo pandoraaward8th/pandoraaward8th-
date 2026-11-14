@@ -68,13 +68,21 @@ def dashboard(request):
 
     active_event = Event.objects.filter(active=True).first()
 
-    total = Ticket.objects.count()
-    pre_reg = Ticket.objects.filter(guest__registration_source='PRE_REGISTERED').count()
-    walk_in = Ticket.objects.filter(guest__registration_source='WALK_IN').count()
-    verified = Ticket.objects.filter(status='VERIFIED').count()
-    checked_in = Ticket.objects.filter(status='USED').count()
-    not_checked_in = Ticket.objects.filter(status='ACTIVE').count()
-    cancelled = Ticket.objects.filter(status='CANCELLED').count()
+    # Exclude plain (placeholder) tickets from named counts
+    plain_placeholder = Guest.objects.filter(
+        full_name='Pandora Guest', phone_number='0000000000'
+    ).first()
+
+    total        = Ticket.objects.count()
+    plain_total  = Ticket.objects.filter(guest=plain_placeholder).count() if plain_placeholder else 0
+    named_total  = total - plain_total
+
+    pre_reg      = Ticket.objects.filter(guest__registration_source='PRE_REGISTERED').exclude(guest=plain_placeholder).count() if plain_placeholder else Ticket.objects.filter(guest__registration_source='PRE_REGISTERED').count()
+    walk_in      = Ticket.objects.filter(guest__registration_source='WALK_IN').count()
+    verified     = Ticket.objects.filter(status='VERIFIED').count()
+    checked_in   = Ticket.objects.filter(status='USED').count()
+    not_checked_in = Ticket.objects.filter(status='ACTIVE').exclude(guest=plain_placeholder).count() if plain_placeholder else Ticket.objects.filter(status='ACTIVE').count()
+    cancelled    = Ticket.objects.filter(status='CANCELLED').count()
 
     # Breakdown by ticket type
     breakdown = (
@@ -91,15 +99,17 @@ def dashboard(request):
     )
 
     ctx = {
-        'active_event': active_event,
-        'total': total,
-        'pre_reg': pre_reg,
-        'walk_in': walk_in,
-        'verified': verified,
-        'checked_in': checked_in,
-        'not_checked_in': not_checked_in,
-        'cancelled': cancelled,
-        'breakdown': breakdown,
+        'active_event':    active_event,
+        'total':           total,
+        'plain_total':     plain_total,
+        'named_total':     named_total,
+        'pre_reg':         pre_reg,
+        'walk_in':         walk_in,
+        'verified':        verified,
+        'checked_in':      checked_in,
+        'not_checked_in':  not_checked_in,
+        'cancelled':       cancelled,
+        'breakdown':       breakdown,
         'recent_checkins': recent_checkins,
     }
     return render(request, 'tickets/dashboard.html', ctx)
@@ -983,18 +993,16 @@ def download_plain_tickets(request):
 
     # QR overlay config per ticket type background
     QR_CFG = {
-        'REGULAR (1).PNG':                            {'qr_cx_pct': 0.858, 'qr_cy_pct': 0.607, 'qr_w_pct': 0.1384, 'qr_h_pct': 0.2140},
-        'VIP.jpeg':                                   {'qr_cx_pct': 0.870, 'qr_cy_pct': 0.607, 'qr_w_pct': 0.1384, 'qr_h_pct': 0.2140},
-        'Pandora Awards SPecial guestTicket Poster.png': {'qr_cx_pct': 0.870, 'qr_cy_pct': 0.607, 'qr_w_pct': 0.1384, 'qr_h_pct': 0.2140},
-        'Pandora Awards Table for Ten Ticket.png':    {'qr_cx_pct': 0.870, 'qr_cy_pct': 0.607, 'qr_w_pct': 0.1384, 'qr_h_pct': 0.2140},
+        'REGULAR (1).PNG':                         {'qr_cx_pct': 0.858, 'qr_cy_pct': 0.607, 'qr_w_pct': 0.1384, 'qr_h_pct': 0.2140},
+        'VIP.jpeg':                                {'qr_cx_pct': 0.870, 'qr_cy_pct': 0.607, 'qr_w_pct': 0.1384, 'qr_h_pct': 0.2140},
+        'Pandora Awards Table for Ten Ticket.png': {'qr_cx_pct': 0.870, 'qr_cy_pct': 0.607, 'qr_w_pct': 0.1384, 'qr_h_pct': 0.2140},
     }
 
     # Ticket type → background mapping
     TYPE_BG = {
-        'Regular':            'REGULAR (1).PNG',
-        'VIP':                'VIP.jpeg',
-        'Special Guest Seat':  'Pandora Awards SPecial guestTicket Poster.png',
-        'Table of Ten':        'Pandora Awards Table for Ten Ticket.png',
+        'Regular':       'REGULAR (1).PNG',
+        'VIP':           'VIP.jpeg',
+        'Table of Ten':  'Pandora Awards Table for Ten Ticket.png',
     }
 
     # Get plain tickets — filtered by type if specified

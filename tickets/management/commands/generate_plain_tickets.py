@@ -26,11 +26,11 @@ from tickets.models import Guest, Ticket, TicketType, Event
 
 # ── Ticket counts and background images ───────────────────────────────────────
 TICKET_PLAN = [
-    {'type': 'Regular',            'count': 200, 'bg': 'REGULAR (1).PNG',
+    {'type': 'Regular',       'count': 200, 'bg': 'REGULAR (1).PNG',
      'qr_cx_pct': 0.858, 'qr_cy_pct': 0.607, 'qr_w_pct': 0.1384, 'qr_h_pct': 0.2140},
-    {'type': 'VIP',                'count': 150, 'bg': 'VIP.jpeg',
+    {'type': 'VIP',           'count': 100, 'bg': 'VIP.jpeg',
      'qr_cx_pct': 0.870, 'qr_cy_pct': 0.607, 'qr_w_pct': 0.1384, 'qr_h_pct': 0.2140},
-    {'type': 'Special Guest Seat', 'count': 70,  'bg': 'Pandora Awards SPecial guestTicket Poster.png',
+    {'type': 'Table of Ten',  'count':  40, 'bg': 'Pandora Awards Table for Ten Ticket.png',
      'qr_cx_pct': 0.870, 'qr_cy_pct': 0.607, 'qr_w_pct': 0.1384, 'qr_h_pct': 0.2140},
 ]
 

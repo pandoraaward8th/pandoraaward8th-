@@ -49,9 +49,9 @@ class Command(BaseCommand):
             else:
                 self.stdout.write(f'  — Ticket type already exists: {name}')
 
-        # Deactivate/delete Media and Staff ticket types
+        # Deactivate Media, Staff and Special Guest Seat ticket types
         from tickets.models import TicketType as TT
-        for remove_name in ['Media', 'Staff']:
+        for remove_name in ['Media', 'Staff', 'Special Guest Seat']:
             TT.objects.filter(name=remove_name).update(active=False)
             self.stdout.write(f'  — Deactivated ticket type: {remove_name}')
 

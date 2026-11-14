@@ -99,9 +99,9 @@ class Command(BaseCommand):
         from tickets.models import Guest, Ticket
 
         PLAN = [
-            ('Regular',            200),
-            ('VIP',                150),
-            ('Special Guest Seat',   70),
+            ('Regular',      200),
+            ('VIP',          100),
+            ('Table of Ten',  40),
         ]
 
         placeholder, created = Guest.objects.get_or_create(
@@ -114,12 +114,36 @@ class Command(BaseCommand):
         if not event:
             return
 
+        # Clear old plain tickets that don't match new plan
+        old_types = Ticket.objects.filter(guest=placeholder).values_list(
+            'ticket_type__name', flat=True
+        ).distinct()
+        for old_type in old_types:
+            if old_type not in [p[0] for p in PLAN]:
+                deleted = Ticket.objects.filter(
+                    guest=placeholder, ticket_type__name=old_type
+                ).delete()
+                self.stdout.write(self.style.WARNING(
+                    f'  — Removed {deleted[0]} old {old_type} plain tickets'
+                ))
+
         total_created = 0
         for type_name, count in PLAN:
             ttype = TicketType.objects.filter(name=type_name).first()
             if not ttype:
                 continue
             existing = Ticket.objects.filter(guest=placeholder, ticket_type=ttype).count()
+            # Remove excess if count reduced
+            if existing > count:
+                excess = existing - count
+                ids = Ticket.objects.filter(
+                    guest=placeholder, ticket_type=ttype
+                ).order_by('-id').values_list('id', flat=True)[:excess]
+                Ticket.objects.filter(id__in=list(ids)).delete()
+                self.stdout.write(self.style.WARNING(
+                    f'  — Removed {excess} excess {type_name} plain tickets'
+                ))
+                existing = count
             needed = count - existing
             for _ in range(needed):
                 Ticket.objects.create(

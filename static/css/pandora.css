@@ -679,19 +679,121 @@ td {
 
   .sidebar-overlay.visible { display: block; }
 
+  /* ── Stats grid: 2 columns on mobile ── */
   .stat-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
   }
 
-  .content-body { padding: 1rem; }
+  .stat-card .stat-value { font-size: 1.5rem; }
+  .stat-card .stat-label { font-size: 0.62rem; letter-spacing: 1px; }
 
+  /* ── Dashboard two-column section → single column ── */
+  .dashboard-two-col {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── Content body ── */
+  .content-body {
+    padding: 0.75rem;
+    overflow-x: hidden;
+  }
+
+  /* ── Cards ── */
+  .card {
+    padding: 0.9rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .card-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .card-header h3 {
+    font-size: 0.9rem;
+  }
+
+  /* ── Event banner: stack on mobile ── */
+  .flex-between {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* ── Tables: readable on mobile ── */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+  }
+
+  table { font-size: 0.8rem; }
+  thead th { padding: 0.6rem 0.5rem; font-size: 0.65rem; }
+  td { padding: 0.55rem 0.5rem; }
+
+  /* ── Guest list table: hide less important columns on small screens ── */
+  .guest-col-date  { display: none; }
+  .guest-col-email { display: none; }
+
+  /* ── Action buttons in table: stack vertically ── */
+  .td-actions {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.3rem !important;
+  }
+
+  .td-actions a {
+    white-space: nowrap;
+    text-align: center;
+    justify-content: center;
+  }
+
+  /* ── Guest detail: single column on mobile ── */
+  .guest-detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── Buttons: full width on mobile ── */
+  .btn-mobile-full {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* ── Verify input group ── */
   .verify-input-group { flex-direction: column; }
   .verify-input-group button { width: 100%; }
+
+  /* ── Ticket detail: stack action buttons ── */
+  .ticket-actions {
+    flex-direction: column !important;
+  }
+
+  .ticket-actions a {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* ── Top bar: tighter padding ── */
+  .top-bar {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .top-bar .page-title {
+    font-size: 0.9rem;
+  }
+
+  /* ── Prevent whole-page horizontal scroll ── */
+  body { overflow-x: hidden; }
+  .layout-wrapper { overflow-x: hidden; }
 }
 
 @media (max-width: 480px) {
-  .stat-grid { grid-template-columns: repeat(2, 1fr); }
-  .top-bar { padding: 0.6rem 1rem; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+  .stat-card { padding: 0.65rem; }
+  .stat-card .stat-value { font-size: 1.3rem; }
+  .top-bar { padding: 0.5rem 0.75rem; }
+  .content-body { padding: 0.6rem; }
+  .card { padding: 0.75rem; }
 }
 
 /* ── Utility ──────────────────────────────────────────────────────────── */

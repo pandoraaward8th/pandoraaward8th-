@@ -3,7 +3,7 @@
 {% block page_title %}Guest Detail{% endblock %}
 
 {% block content %}
-<div style="display:grid;grid-template-columns:280px 1fr;gap:1.25rem;align-items:start;">
+<div class="guest-detail-grid" style="display:grid;grid-template-columns:280px 1fr;gap:1.25rem;align-items:start;">
 
   <!-- Left: photo + info -->
   <div class="card" style="text-align:center;">
@@ -34,14 +34,33 @@
 
     <!-- Update photo -->
     <hr style="border-color:var(--dark3);">
-    <p style="font-size:0.8rem;color:var(--gold-light);margin-bottom:0.5rem;">Update Photo</p>
+    <p style="font-size:0.8rem;color:var(--gold-light);margin-bottom:0.5rem;font-weight:600;">
+      <i class="bi bi-camera"></i> Update Photo
+    </p>
     <form method="post" enctype="multipart/form-data">
       {% csrf_token %}
-      {{ photo_form.photo }}
-      <button type="submit" class="btn-outline-gold" style="width:100%;margin-top:0.5rem;justify-content:center;">
-        <i class="bi bi-camera"></i> Update
+      <div style="margin-bottom:0.5rem;">
+        <label for="{{ photo_form.photo.id_for_label }}" style="display:block;background:var(--dark2);border:1.5px dashed var(--gold-dark);border-radius:8px;padding:0.65rem;text-align:center;cursor:pointer;font-size:0.8rem;color:var(--gold-light);text-transform:none;letter-spacing:0;">
+          <i class="bi bi-image" style="font-size:1.2rem;display:block;margin-bottom:4px;"></i>
+          <span id="photo-label-text">Choose Photo</span>
+        </label>
+        <div style="display:none;">{{ photo_form.photo }}</div>
+      </div>
+      <button type="submit" class="btn-gold" style="width:100%;justify-content:center;margin-top:0.25rem;">
+        <i class="bi bi-cloud-upload"></i> Save Photo
       </button>
     </form>
+    <script>
+      (function(){
+        var inp = document.getElementById('{{ photo_form.photo.id_for_label }}');
+        var lbl = document.getElementById('photo-label-text');
+        if(inp && lbl){
+          inp.addEventListener('change', function(){
+            lbl.textContent = this.files.length ? this.files[0].name : 'Choose Photo';
+          });
+        }
+      })();
+    </script>
   </div>
 
   <!-- Right: tickets -->
@@ -76,7 +95,7 @@
           {% endif %}
         </div>
 
-        <div style="display:flex;gap:0.5rem;margin-top:0.75rem;flex-wrap:wrap;">
+        <div class="ticket-actions" style="display:flex;gap:0.5rem;margin-top:0.75rem;flex-wrap:wrap;">
           <a href="{% url 'ticket_detail' ticket.pk %}" class="btn-outline-gold" style="font-size:0.78rem;padding:0.3rem 0.75rem;">
             <i class="bi bi-eye"></i> View
           </a>

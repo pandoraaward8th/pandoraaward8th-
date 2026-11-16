@@ -133,6 +133,9 @@
       .mobile-nav { display: block; }
       .content-body { padding-bottom: 72px !important; }
       .hamburger { display: block !important; }
+      /* Collapse any two-column inline grids */
+      .dashboard-two-col { grid-template-columns: 1fr !important; }
+      .guest-detail-grid  { grid-template-columns: 1fr !important; }
     }
 
     @media (min-width: 769px) {
@@ -359,8 +362,9 @@
     document.getElementById('mobile-menu-overlay').classList.remove('open');
     document.body.style.overflow = '';
   }
-  // Mark active bottom nav link
+
   document.addEventListener('DOMContentLoaded', function () {
+    // ── Active bottom nav link ────────────────────────────────────────
     const path = window.location.pathname;
     document.querySelectorAll('.mobile-nav a, .mobile-menu-panel a').forEach(function(a) {
       const href = a.getAttribute('href');
@@ -368,6 +372,30 @@
         a.classList.add('active');
       }
     });
+
+    // ── Auto-dismiss alerts after 4 seconds ──────────────────────────
+    document.querySelectorAll('.alert-auto-dismiss').forEach(function(el) {
+      setTimeout(function() {
+        el.style.transition = 'opacity 0.5s';
+        el.style.opacity = '0';
+        setTimeout(function() { el.remove(); }, 500);
+      }, 4000);
+    });
+
+    // ── Prevent content jumping when mobile menu closes ───────────────
+    // Restore scroll position after closing menu
+    var savedScroll = 0;
+    document.getElementById('mobile-menu-overlay').addEventListener('transitionend', function() {
+      if (!this.classList.contains('open')) {
+        window.scrollTo(0, savedScroll);
+      }
+    });
+
+    // ── Fix blank page on scroll: ensure main-content fills viewport ──
+    var mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+      mainContent.style.minHeight = '100vh';
+    }
   });
 </script>
 {% block extra_js %}{% endblock %}

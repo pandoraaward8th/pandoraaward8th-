@@ -25,7 +25,7 @@
           <th>Phone</th>
           <th>Source</th>
           <th>Tickets</th>
-          <th>Registered</th>
+          <th class="guest-col-date">Registered</th>
           <th></th>
         </tr>
       </thead>
@@ -49,8 +49,8 @@
             {% endif %}
           </td>
           <td>{{ guest.tickets.count }}</td>
-          <td style="font-size:0.8rem;color:var(--text-muted);">{{ guest.created_at|date:"d M Y" }}</td>
-          <td style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap;">
+          <td class="guest-col-date" style="font-size:0.8rem;color:var(--text-muted);">{{ guest.created_at|date:"d M Y" }}</td>
+          <td class="td-actions" style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap;">
             <a href="{% url 'guest_detail' guest.pk %}" class="btn-outline-gold" style="padding:0.3rem 0.75rem;font-size:0.78rem;">
               <i class="bi bi-eye"></i> View
             </a>

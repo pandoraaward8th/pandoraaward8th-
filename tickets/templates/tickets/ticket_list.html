@@ -5,20 +5,25 @@
 {% block extra_head %}
 <style>
 /* ── Ticket type tabs ───────────────────────────────────────── */
+.type-tabs-wrapper {
+  margin-bottom: 1.25rem;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.type-tabs-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
 .type-tabs {
   display: flex;
   gap: 0.5rem;
   flex-wrap: nowrap;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  margin-bottom: 1.25rem;
-  padding-bottom: 6px;
-  scrollbar-width: none;        /* Firefox */
-  -ms-overflow-style: none;     /* IE/Edge */
-}
-
-.type-tabs::-webkit-scrollbar {
-  display: none;                /* Chrome/Safari */
+  min-width: max-content;
+  padding-bottom: 4px;
 }
 
 .type-tab {
@@ -138,6 +143,7 @@
 </div>
 
 <!-- ── Type tabs ──────────────────────────────────────────────── -->
+<div class="type-tabs-wrapper">
 <div class="type-tabs">
   <a href="{% url 'ticket_list' %}{% if q %}?q={{ q }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
      class="type-tab {% if not type_filter %}active{% endif %}">
@@ -155,6 +161,7 @@
     <span class="tab-count">{{ tlist|length }}</span>
   </a>
   {% endfor %}
+</div>
 </div>
 
 <!-- ── Ticket sections ────────────────────────────────────────── -->

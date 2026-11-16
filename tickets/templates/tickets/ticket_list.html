@@ -8,8 +8,17 @@
 .type-tabs {
   display: flex;
   gap: 0.5rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   margin-bottom: 1.25rem;
+  padding-bottom: 6px;
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* IE/Edge */
+}
+
+.type-tabs::-webkit-scrollbar {
+  display: none;                /* Chrome/Safari */
 }
 
 .type-tab {
@@ -28,6 +37,8 @@
   background: transparent;
   text-decoration: none;
   transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .type-tab:hover {

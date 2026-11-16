@@ -225,7 +225,12 @@ def guest_delete(request, pk):
 def ticket_list(request):
     q = request.GET.get('q', '').strip()
     status_filter = request.GET.get('status', '')
-    tickets = Ticket.objects.select_related('guest', 'event', 'ticket_type', 'checked_in_by').order_by('-created_at')
+    type_filter = request.GET.get('type', '').strip()
+
+    tickets = Ticket.objects.select_related(
+        'guest', 'event', 'ticket_type', 'checked_in_by'
+    ).order_by('-created_at')
+
     if q:
         tickets = tickets.filter(
             Q(ticket_number__icontains=q)
@@ -234,8 +239,24 @@ def ticket_list(request):
         )
     if status_filter:
         tickets = tickets.filter(status=status_filter)
+    if type_filter:
+        tickets = tickets.filter(ticket_type__name__iexact=type_filter)
+
+    # Group by ticket type for tab display
+    from collections import OrderedDict
+    grouped = OrderedDict()
+    for ticket in tickets:
+        tname = ticket.ticket_type.name
+        if tname not in grouped:
+            grouped[tname] = []
+        grouped[tname].append(ticket)
+
     return render(request, 'tickets/ticket_list.html', {
-        'tickets': tickets, 'q': q, 'status_filter': status_filter,
+        'tickets':       tickets,
+        'grouped':       grouped,
+        'q':             q,
+        'status_filter': status_filter,
+        'type_filter':   type_filter,
     })
 
 

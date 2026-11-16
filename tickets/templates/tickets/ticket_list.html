@@ -2,72 +2,227 @@
 {% block title %}Tickets — Pandora E-Ticket{% endblock %}
 {% block page_title %}All Tickets{% endblock %}
 
-{% block content %}
-<div class="card">
-  <div class="card-header">
-    <h3><i class="bi bi-ticket-perforated"></i> All Tickets</h3>
-    <a href="{% url 'guest_create' %}" class="btn-gold">
-      <i class="bi bi-plus-lg"></i> New Ticket
-    </a>
-  </div>
+{% block extra_head %}
+<style>
+/* ── Ticket type tabs ───────────────────────────────────────── */
+.type-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
 
-  <form method="get" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;">
-    <input type="search" name="q" value="{{ q }}" placeholder="Ticket number, guest name or phone…" style="flex:1;min-width:200px;">
+.type-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1.1rem;
+  border-radius: 24px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  border: 2px solid var(--gold-dark);
+  color: var(--text-muted);
+  background: transparent;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.type-tab:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  text-decoration: none;
+}
+
+.type-tab.active {
+  background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+  border-color: var(--gold);
+  color: #fff;
+}
+
+.type-tab .tab-count {
+  background: rgba(255,255,255,0.2);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 0.75rem;
+}
+
+.type-tab.active .tab-count {
+  background: rgba(255,255,255,0.25);
+}
+
+/* ── Section headers ────────────────────────────────────────── */
+.ticket-section {
+  margin-bottom: 2rem;
+}
+
+.ticket-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--dark2);
+  border: 1px solid var(--gold-dark);
+  border-radius: 10px 10px 0 0;
+  border-bottom: none;
+}
+
+.ticket-section-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--gold);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ticket-section-header .section-count {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: var(--dark3);
+  padding: 0.2rem 0.6rem;
+  border-radius: 10px;
+}
+
+.ticket-section .table-wrap {
+  border-radius: 0 0 10px 10px;
+  border: 1px solid var(--dark3);
+  border-top: none;
+}
+
+@media (max-width: 768px) {
+  .type-tab { font-size: 0.75rem; padding: 0.4rem 0.8rem; }
+  .ticket-section-header h3 { font-size: 0.9rem; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Filter bar ─────────────────────────────────────────────── -->
+<div class="card" style="margin-bottom:1rem;">
+  <form method="get" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+    <input type="search" name="q" value="{{ q }}"
+           placeholder="Ticket number, guest name or phone…"
+           style="flex:1;min-width:180px;">
     <select name="status" style="width:auto;">
       <option value="">All Statuses</option>
       <option value="ACTIVE"    {% if status_filter == 'ACTIVE'    %}selected{% endif %}>Active</option>
+      <option value="VERIFIED"  {% if status_filter == 'VERIFIED'  %}selected{% endif %}>Verified</option>
       <option value="USED"      {% if status_filter == 'USED'      %}selected{% endif %}>Used</option>
       <option value="CANCELLED" {% if status_filter == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
     </select>
+    {% if type_filter %}
+    <input type="hidden" name="type" value="{{ type_filter }}">
+    {% endif %}
     <button type="submit" class="btn-gold"><i class="bi bi-search"></i> Filter</button>
+    {% if q or status_filter or type_filter %}
+    <a href="{% url 'ticket_list' %}" class="btn-outline-gold">
+      <i class="bi bi-x"></i> Clear
+    </a>
+    {% endif %}
   </form>
-
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Ticket No.</th>
-          <th>Guest</th>
-          <th>Phone</th>
-          <th>Type</th>
-          <th>Source</th>
-          <th>Status</th>
-          <th>Issued</th>
-          <th>Check-In</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for t in tickets %}
-        <tr>
-          <td><span class="ticket-number-display">{{ t.ticket_number }}</span></td>
-          <td>{{ t.guest.full_name }}</td>
-          <td>{{ t.guest.phone_number }}</td>
-          <td>{{ t.ticket_type.name }}</td>
-          <td>
-            {% if t.guest.registration_source == 'WALK_IN' %}
-            <span class="badge badge-walkin">Walk-In</span>
-            {% else %}
-            <span class="badge badge-preregistered">Pre-Reg</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if t.status == 'ACTIVE' %}<span class="badge badge-active">Active</span>
-            {% elif t.status == 'USED' %}<span class="badge badge-used">Used</span>
-            {% else %}<span class="badge badge-cancelled">Cancelled</span>{% endif %}          </td>
-          <td style="font-size:0.8rem;color:var(--text-muted);">{{ t.issued_at|date:"d M Y" }}</td>
-          <td style="font-size:0.8rem;color:var(--text-muted);">
-            {% if t.checked_in_at %}{{ t.checked_in_at|date:"d M Y, g:i A" }}{% else %}—{% endif %}
-          </td>
-          <td><a href="{% url 'ticket_detail' t.pk %}" class="btn-outline-gold" style="padding:0.3rem 0.75rem;font-size:0.78rem;">View</a></td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="9" style="text-align:center;padding:2rem;color:var(--text-muted);">No tickets found.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
 </div>
+
+<!-- ── Type tabs ──────────────────────────────────────────────── -->
+<div class="type-tabs">
+  <a href="{% url 'ticket_list' %}{% if q %}?q={{ q }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+     class="type-tab {% if not type_filter %}active{% endif %}">
+    <i class="bi bi-ticket-perforated"></i> All
+    <span class="tab-count">{{ tickets|length }}</span>
+  </a>
+  {% for tname, tlist in grouped.items %}
+  <a href="{% url 'ticket_list' %}?type={{ tname }}{% if q %}&q={{ q }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+     class="type-tab {% if type_filter == tname %}active{% endif %}">
+    {% if tname == 'Regular' %}<i class="bi bi-ticket"></i>
+    {% elif tname == 'VIP' %}<i class="bi bi-star"></i>
+    {% elif 'Table' in tname %}<i class="bi bi-people"></i>
+    {% else %}<i class="bi bi-tag"></i>{% endif %}
+    {{ tname }}
+    <span class="tab-count">{{ tlist|length }}</span>
+  </a>
+  {% endfor %}
+</div>
+
+<!-- ── Ticket sections ────────────────────────────────────────── -->
+{% if grouped %}
+  {% for tname, tlist in grouped.items %}
+  <div class="ticket-section">
+    <div class="ticket-section-header">
+      <h3>
+        {% if tname == 'Regular' %}<i class="bi bi-ticket"></i>
+        {% elif tname == 'VIP' %}<i class="bi bi-star-fill"></i>
+        {% elif 'Table' in tname %}<i class="bi bi-people-fill"></i>
+        {% else %}<i class="bi bi-tag-fill"></i>{% endif %}
+        {{ tname }}
+      </h3>
+      <span class="section-count">{{ tlist|length }} ticket{{ tlist|length|pluralize }}</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Ticket No.</th>
+            <th>Guest</th>
+            <th>Phone</th>
+            <th>Source</th>
+            <th>Status</th>
+            <th>Issued</th>
+            <th>Check-In</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in tlist %}
+          <tr>
+            <td><span class="ticket-number-display">{{ t.ticket_number }}</span></td>
+            <td>{{ t.guest.full_name }}</td>
+            <td style="font-size:0.8rem;">{{ t.guest.phone_number }}</td>
+            <td>
+              {% if t.guest.registration_source == 'WALK_IN' %}
+              <span class="badge badge-walkin">Walk-In</span>
+              {% else %}
+              <span class="badge badge-preregistered">Pre-Reg</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if t.status == 'ACTIVE' %}<span class="badge badge-active">Active</span>
+              {% elif t.status == 'VERIFIED' %}<span class="badge" style="background:rgba(90,172,255,0.15);color:#5aacff;">Verified</span>
+              {% elif t.status == 'USED' %}<span class="badge badge-used">Used</span>
+              {% else %}<span class="badge badge-cancelled">Cancelled</span>{% endif %}
+            </td>
+            <td style="font-size:0.8rem;color:var(--text-muted);">{{ t.issued_at|date:"d M Y" }}</td>
+            <td style="font-size:0.8rem;color:var(--text-muted);">
+              {% if t.checked_in_at %}{{ t.checked_in_at|date:"d M, g:i A" }}{% else %}—{% endif %}
+            </td>
+            <td>
+              <a href="{% url 'ticket_detail' t.pk %}"
+                 class="btn-outline-gold"
+                 style="padding:0.3rem 0.75rem;font-size:0.78rem;white-space:nowrap;">
+                <i class="bi bi-eye"></i> View
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+<div class="card" style="text-align:center;padding:2.5rem;color:var(--text-muted);">
+  <i class="bi bi-ticket-perforated" style="font-size:2.5rem;display:block;margin-bottom:0.75rem;"></i>
+  {% if q or status_filter or type_filter %}
+  No tickets match your filters.
+  <br><a href="{% url 'ticket_list' %}" class="btn-outline-gold" style="margin-top:1rem;display:inline-flex;">
+    <i class="bi bi-x"></i> Clear filters
+  </a>
+  {% else %}
+  No tickets issued yet.
+  {% endif %}
+</div>
+{% endif %}
+
 {% endblock %}

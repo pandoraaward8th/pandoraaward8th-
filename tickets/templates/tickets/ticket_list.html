@@ -153,11 +153,11 @@
   {% for tname, tlist in grouped.items %}
   <a href="{% url 'ticket_list' %}?type={{ tname }}{% if q %}&q={{ q }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
      class="type-tab {% if type_filter == tname %}active{% endif %}">
-    {% if tname == 'Regular' %}<i class="bi bi-ticket"></i>
-    {% elif tname == 'VIP' %}<i class="bi bi-star"></i>
-    {% elif 'Table' in tname %}<i class="bi bi-people"></i>
-    {% else %}<i class="bi bi-tag"></i>{% endif %}
-    {{ tname }}
+    {% if tname == '__complimentary__' %}<i class="bi bi-gift"></i> Complimentary
+    {% elif tname == 'Regular' %}<i class="bi bi-ticket"></i> {{ tname }}
+    {% elif tname == 'VIP' %}<i class="bi bi-star"></i> {{ tname }}
+    {% elif 'Table' in tname %}<i class="bi bi-people"></i> {{ tname }}
+    {% else %}<i class="bi bi-tag"></i> {{ tname }}{% endif %}
     <span class="tab-count">{{ tlist|length }}</span>
   </a>
   {% endfor %}
@@ -170,11 +170,14 @@
   <div class="ticket-section">
     <div class="ticket-section-header">
       <h3>
-        {% if tname == 'Regular' %}<i class="bi bi-ticket"></i>
-        {% elif tname == 'VIP' %}<i class="bi bi-star-fill"></i>
-        {% elif 'Table' in tname %}<i class="bi bi-people-fill"></i>
-        {% else %}<i class="bi bi-tag-fill"></i>{% endif %}
-        {{ tname }}
+        {% if tname == '__complimentary__' %}<i class="bi bi-gift-fill"></i> Complimentary
+        {% elif tname == 'Regular' %}<i class="bi bi-ticket"></i> {{ tname }}
+        {% elif tname == 'VIP' %}<i class="bi bi-star-fill"></i> {{ tname }}
+        {% elif 'Table' in tname %}<i class="bi bi-people-fill"></i> {{ tname }}
+        {% else %}<i class="bi bi-tag-fill"></i> {{ tname }}{% endif %}
+        {% if tname == '__complimentary__' %}
+        <span style="font-size:0.7rem;color:var(--text-muted);font-weight:400;margin-left:0.5rem;">— not counted in attendance</span>
+        {% endif %}
       </h3>
       <span class="section-count">{{ tlist|length }} ticket{{ tlist|length|pluralize }}</span>
     </div>

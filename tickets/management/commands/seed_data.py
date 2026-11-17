@@ -92,6 +92,9 @@ class Command(BaseCommand):
         # ── Plain tickets (no personal info) ──────────────────────────────
         self._seed_plain_tickets()
 
+        # ── Complimentary tickets ──────────────────────────────────────────
+        self._seed_complimentary_tickets()
+
         self.stdout.write(self.style.SUCCESS('\nSeed complete. 🏆'))
 
     def _seed_plain_tickets(self):
@@ -164,3 +167,46 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(
                 f'  ✔ {total_created} new plain tickets created'
             ))
+
+    def _seed_complimentary_tickets(self):
+        """Create 5 complimentary tickets (3 Regular + 2 VIP) hidden from dashboard."""
+        from tickets.models import Guest, Ticket
+
+        PLAN = [('Regular', 3), ('VIP', 2)]
+
+        placeholder, _ = Guest.objects.get_or_create(
+            full_name='Complimentary Guest',
+            phone_number='0000000001',
+            defaults={'registration_source': Guest.RegistrationSource.PRE_REGISTERED},
+        )
+
+        event = Event.objects.filter(active=True).first()
+        if not event:
+            return
+
+        created = 0
+        for type_name, count in PLAN:
+            ttype = TicketType.objects.filter(name=type_name).first()
+            if not ttype:
+                continue
+            existing = Ticket.objects.filter(
+                guest=placeholder, ticket_type=ttype, is_complimentary=True
+            ).count()
+            needed = count - existing
+            for _ in range(needed):
+                Ticket.objects.create(
+                    guest=placeholder,
+                    event=event,
+                    ticket_type=ttype,
+                    status=Ticket.Status.ACTIVE,
+                    is_complimentary=True,
+                )
+                created += 1
+            if needed > 0:
+                self.stdout.write(self.style.SUCCESS(
+                    f'  ✔ Created {needed} complimentary {type_name} ticket(s)'
+                ))
+            else:
+                self.stdout.write(f'  — Complimentary {type_name}: already have {existing}/{count}')
+        if created:
+            self.stdout.write(self.style.SUCCESS(f'  ✔ {created} complimentary tickets created'))

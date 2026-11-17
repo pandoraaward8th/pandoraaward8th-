@@ -68,32 +68,46 @@ def dashboard(request):
 
     active_event = Event.objects.filter(active=True).first()
 
-    # Exclude plain (placeholder) tickets from named counts
+    # Exclude plain (placeholder) tickets and complimentary tickets from all counts
     plain_placeholder = Guest.objects.filter(
         full_name='Pandora Guest', phone_number='0000000000'
     ).first()
+    comp_placeholder = Guest.objects.filter(
+        full_name='Complimentary Guest', phone_number='0000000001'
+    ).first()
 
-    total        = Ticket.objects.count()
-    plain_total  = Ticket.objects.filter(guest=plain_placeholder).count() if plain_placeholder else 0
-    named_total  = total - plain_total
+    # Base queryset — excludes both plain and complimentary tickets
+    def real_tickets():
+        qs = Ticket.objects.exclude(is_complimentary=True)
+        if plain_placeholder:
+            qs = qs.exclude(guest=plain_placeholder)
+        return qs
 
-    pre_reg      = Ticket.objects.filter(guest__registration_source='PRE_REGISTERED').exclude(guest=plain_placeholder).count() if plain_placeholder else Ticket.objects.filter(guest__registration_source='PRE_REGISTERED').count()
-    walk_in      = Ticket.objects.filter(guest__registration_source='WALK_IN').count()
-    verified     = Ticket.objects.filter(status='VERIFIED').count()
-    checked_in   = Ticket.objects.filter(status='USED').count()
-    not_checked_in = Ticket.objects.filter(status='ACTIVE').exclude(guest=plain_placeholder).count() if plain_placeholder else Ticket.objects.filter(status='ACTIVE').count()
-    cancelled    = Ticket.objects.filter(status='CANCELLED').count()
+    total          = real_tickets().count()
+    plain_total    = Ticket.objects.filter(guest=plain_placeholder).count() if plain_placeholder else 0
+    comp_total     = Ticket.objects.filter(is_complimentary=True).count()
+    named_total    = total - plain_total
 
-    # Breakdown by ticket type
+    pre_reg        = real_tickets().filter(guest__registration_source='PRE_REGISTERED').count()
+    walk_in        = real_tickets().filter(guest__registration_source='WALK_IN').count()
+    verified       = real_tickets().filter(status='VERIFIED').count()
+    checked_in     = real_tickets().filter(status='USED').count()
+    not_checked_in = real_tickets().filter(status='ACTIVE').count()
+    cancelled      = real_tickets().filter(status='CANCELLED').count()
+
+    # Breakdown by ticket type — also excludes complimentary and plain
     breakdown = (
         TicketType.objects.filter(active=True)
-        .annotate(total=Count('tickets'), used=Count('tickets', filter=Q(tickets__status='USED')))
+        .annotate(
+            total=Count('tickets', filter=Q(tickets__is_complimentary=False) & ~Q(tickets__guest=plain_placeholder) if plain_placeholder else Q(tickets__is_complimentary=False)),
+            used=Count('tickets', filter=Q(tickets__status='USED', tickets__is_complimentary=False) & ~Q(tickets__guest=plain_placeholder) if plain_placeholder else Q(tickets__status='USED', tickets__is_complimentary=False)),
+        )
         .values('name', 'total', 'used')
     )
 
-    # Recent check-ins
+    # Recent check-ins — excludes complimentary
     recent_checkins = (
-        Ticket.objects.filter(status='USED')
+        Ticket.objects.filter(status='USED', is_complimentary=False)
         .select_related('guest', 'ticket_type', 'checked_in_by')
         .order_by('-checked_in_at')[:10]
     )
@@ -103,6 +117,7 @@ def dashboard(request):
         'total':           total,
         'plain_total':     plain_total,
         'named_total':     named_total,
+        'comp_total':      comp_total,
         'pre_reg':         pre_reg,
         'walk_in':         walk_in,
         'verified':        verified,
@@ -247,6 +262,8 @@ def ticket_list(request):
     grouped = OrderedDict()
     for ticket in tickets:
         tname = ticket.ticket_type.name
+        if ticket.is_complimentary:
+            tname = '__complimentary__'
         if tname not in grouped:
             grouped[tname] = []
         grouped[tname].append(ticket)

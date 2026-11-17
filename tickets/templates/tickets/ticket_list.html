@@ -153,8 +153,7 @@
   {% for tname, tlist in grouped.items %}
   <a href="{% url 'ticket_list' %}?type={{ tname }}{% if q %}&q={{ q }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
      class="type-tab {% if type_filter == tname %}active{% endif %}">
-    {% if tname == '__complimentary__' %}<i class="bi bi-gift"></i> Complimentary
-    {% elif tname == 'Regular' %}<i class="bi bi-ticket"></i> {{ tname }}
+    {% if tname == 'Regular' %}<i class="bi bi-ticket"></i> {{ tname }}
     {% elif tname == 'VIP' %}<i class="bi bi-star"></i> {{ tname }}
     {% elif 'Table' in tname %}<i class="bi bi-people"></i> {{ tname }}
     {% else %}<i class="bi bi-tag"></i> {{ tname }}{% endif %}

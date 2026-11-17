@@ -72,9 +72,6 @@ def dashboard(request):
     plain_placeholder = Guest.objects.filter(
         full_name='Pandora Guest', phone_number='0000000000'
     ).first()
-    comp_placeholder = Guest.objects.filter(
-        full_name='Complimentary Guest', phone_number='0000000001'
-    ).first()
 
     # Base queryset — excludes both plain and complimentary tickets
     def real_tickets():
@@ -85,7 +82,6 @@ def dashboard(request):
 
     total          = real_tickets().count()
     plain_total    = Ticket.objects.filter(guest=plain_placeholder).count() if plain_placeholder else 0
-    comp_total     = Ticket.objects.filter(is_complimentary=True).count()
     named_total    = total - plain_total
 
     pre_reg        = real_tickets().filter(guest__registration_source='PRE_REGISTERED').count()
@@ -117,7 +113,6 @@ def dashboard(request):
         'total':           total,
         'plain_total':     plain_total,
         'named_total':     named_total,
-        'comp_total':      comp_total,
         'pre_reg':         pre_reg,
         'walk_in':         walk_in,
         'verified':        verified,
@@ -138,7 +133,9 @@ def dashboard(request):
 @ticket_admin_required
 def guest_list(request):
     q = request.GET.get('q', '').strip()
-    guests = Guest.objects.prefetch_related('tickets').order_by('-created_at')
+    guests = Guest.objects.prefetch_related('tickets').order_by('-created_at').exclude(
+        full_name='Complimentary Guest', phone_number='0000000001'
+    )
     if q:
         guests = guests.filter(
             Q(full_name__icontains=q) | Q(phone_number__icontains=q) | Q(email__icontains=q)
@@ -242,7 +239,7 @@ def ticket_list(request):
     status_filter = request.GET.get('status', '')
     type_filter = request.GET.get('type', '').strip()
 
-    tickets = Ticket.objects.select_related(
+    tickets = Ticket.objects.filter(is_complimentary=False).select_related(
         'guest', 'event', 'ticket_type', 'checked_in_by'
     ).order_by('-created_at')
 
@@ -257,13 +254,13 @@ def ticket_list(request):
     if type_filter:
         tickets = tickets.filter(ticket_type__name__iexact=type_filter)
 
-    # Group by ticket type for tab display
+    # Group by ticket type for tab display — exclude complimentary from view
     from collections import OrderedDict
     grouped = OrderedDict()
     for ticket in tickets:
-        tname = ticket.ticket_type.name
         if ticket.is_complimentary:
-            tname = '__complimentary__'
+            continue   # hide complimentary tickets from the list entirely
+        tname = ticket.ticket_type.name
         if tname not in grouped:
             grouped[tname] = []
         grouped[tname].append(ticket)
@@ -897,7 +894,7 @@ def staff_delete(request, pk):
 @login_required
 @ticket_admin_required
 def reports(request):
-    tickets = Ticket.objects.select_related(
+    tickets = Ticket.objects.filter(is_complimentary=False).select_related(
         'guest', 'event', 'ticket_type', 'checked_in_by'
     ).order_by('-created_at')
 
@@ -926,7 +923,7 @@ def reports(request):
 @login_required
 @ticket_admin_required
 def reports_export_csv(request):
-    tickets = Ticket.objects.select_related(
+    tickets = Ticket.objects.filter(is_complimentary=False).select_related(
         'guest', 'event', 'ticket_type', 'checked_in_by'
     ).order_by('-created_at')
 

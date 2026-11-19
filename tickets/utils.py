@@ -294,8 +294,17 @@ def generate_ticket_pdf(ticket) -> bytes:
         name_x = TICKET_W * name_x_pct
         name_y = TICKET_H * name_y_pct
 
-        c.setFillColor(name_color)
         c.setFont('Helvetica-Bold', name_pt)
+
+        # Draw multiple offset passes to create thick bold effect
+        offsets = [
+            (-0.5, -0.5), (0.5, -0.5), (-0.5, 0.5), (0.5, 0.5),
+            (-0.8,  0.0), (0.8,  0.0), (0.0, -0.8), (0.0,  0.8),
+        ]
+        c.setFillColor(name_color)
+        for ox, oy in offsets:
+            c.drawString(name_x + ox, name_y + oy, guest_name[:40])
+        # Final clean pass on top
         c.drawString(name_x, name_y, guest_name[:40])
 
     # ── 3. QR code overlay (stub QR placeholder box) ────────────────────

@@ -285,26 +285,45 @@ def generate_ticket_pdf(ticket) -> bytes:
     if not is_plain:
         guest_name = ticket.guest.full_name.upper()
 
-        # Font size scales with name length
-        if   len(guest_name) <= 14: name_pt = 16
-        elif len(guest_name) <= 20: name_pt = 14
-        elif len(guest_name) <= 28: name_pt = 12
-        else:                       name_pt = 10
+        # Font size — scales with name length
+        if   len(guest_name) <= 10: name_pt = 28
+        elif len(guest_name) <= 16: name_pt = 24
+        elif len(guest_name) <= 22: name_pt = 20
+        elif len(guest_name) <= 30: name_pt = 17
+        else:                       name_pt = 14
 
-        name_x = TICKET_W * name_x_pct
-        name_y = TICKET_H * name_y_pct
+        # Cover "TICKET HOLDER" text with background-coloured rectangle
+        # Strip runs from x≈8% to x≈73%, y≈10%–17% from bottom (ReportLab coords)
+        ttype_upper = ticket.ticket_type.name.upper()
+        if 'SPECIAL' in ttype_upper:
+            cover_color = colors.Color(4/255, 21/255, 2/255)    # dark green
+        elif 'VIP' in ttype_upper:
+            cover_color = colors.Color(5/255, 3/255, 4/255)     # near black
+        elif 'TABLE' in ttype_upper:
+            cover_color = colors.Color(8/255, 0/255, 3/255)     # dark maroon
+        else:
+            cover_color = colors.Color(250/255, 248/255, 239/255)  # Regular off-white
+
+        strip_x1 = TICKET_W * 0.07
+        strip_y1 = TICKET_H * 0.09
+        strip_x2 = TICKET_W * 0.73
+        strip_y2 = TICKET_H * 0.19
+        c.setFillColor(cover_color)
+        c.rect(strip_x1, strip_y1, strip_x2 - strip_x1, strip_y2 - strip_y1, fill=1, stroke=0)
+
+        # Draw name in the cleared area — centred vertically in strip
+        name_x = strip_x1 + 8
+        name_y = strip_y1 + (strip_y2 - strip_y1 - name_pt) / 2
 
         c.setFont('Helvetica-Bold', name_pt)
-
-        # Draw multiple offset passes to create thick bold effect
+        # Multi-pass thick bold
         offsets = [
-            (-0.5, -0.5), (0.5, -0.5), (-0.5, 0.5), (0.5, 0.5),
-            (-0.8,  0.0), (0.8,  0.0), (0.0, -0.8), (0.0,  0.8),
+            (-1.0, -1.0), (1.0, -1.0), (-1.0, 1.0), (1.0, 1.0),
+            (-1.2,  0.0), (1.2,  0.0), (0.0, -1.2), (0.0,  1.2),
         ]
         c.setFillColor(name_color)
         for ox, oy in offsets:
             c.drawString(name_x + ox, name_y + oy, guest_name[:40])
-        # Final clean pass on top
         c.drawString(name_x, name_y, guest_name[:40])
 
     # ── 3. QR code overlay (stub QR placeholder box) ────────────────────

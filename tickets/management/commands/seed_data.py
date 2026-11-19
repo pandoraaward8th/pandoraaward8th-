@@ -49,11 +49,15 @@ class Command(BaseCommand):
             else:
                 self.stdout.write(f'  — Ticket type already exists: {name}')
 
-        # Deactivate Media, Staff and Special Guest Seat ticket types
+        # Deactivate Media and Staff ticket types only
         from tickets.models import TicketType as TT
-        for remove_name in ['Media', 'Staff', 'Special Guest Seat']:
+        for remove_name in ['Media', 'Staff']:
             TT.objects.filter(name=remove_name).update(active=False)
             self.stdout.write(f'  — Deactivated ticket type: {remove_name}')
+
+        # Ensure Special Guest Seat is active
+        TT.objects.filter(name='Special Guest Seat').update(active=True)
+        self.stdout.write('  — Special Guest Seat: active')
 
         # Rename Gold Table → Table of Ten (only if Table of Ten doesn't exist yet)
         from tickets.models import TicketType as TT

@@ -77,7 +77,7 @@ class Guest(models.Model):
         WALK_IN = 'WALK_IN', 'Walk-In'
 
     full_name = models.CharField(max_length=200)
-    phone_number = models.CharField(max_length=30)
+    phone_number = models.CharField(max_length=30, blank=True, default='')
     email = models.EmailField(blank=True)
     photo = models.ImageField(upload_to='photos/', blank=True, null=True)
     registration_source = models.CharField(

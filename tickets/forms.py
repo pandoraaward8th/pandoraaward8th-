@@ -27,10 +27,14 @@ class GuestRegistrationForm(forms.ModelForm):
         model = Guest
         fields = ['full_name', 'phone_number', 'email', 'photo']
         widgets = {
-            'full_name': forms.TextInput(attrs={'placeholder': 'Full name as it should appear on ticket'}),
-            'phone_number': forms.TextInput(attrs={'placeholder': '+234...'}),
-            'email': forms.EmailInput(attrs={'placeholder': 'Optional'}),
+            'full_name':    forms.TextInput(attrs={'placeholder': 'Full name as it should appear on ticket'}),
+            'phone_number': forms.TextInput(attrs={'placeholder': '+234... (optional)'}),
+            'email':        forms.EmailInput(attrs={'placeholder': 'Optional'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['phone_number'].required = False
 
     def clean_photo(self):
         photo = self.cleaned_data.get('photo')
@@ -61,7 +65,8 @@ class WalkInRegistrationForm(forms.Form):
     )
     phone_number = forms.CharField(
         max_length=30,
-        widget=forms.TextInput(attrs={'placeholder': '+234...'}),
+        required=False,
+        widget=forms.TextInput(attrs={'placeholder': '+234... (optional)'}),
     )
     email = forms.EmailField(
         required=False,

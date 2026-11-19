@@ -31,7 +31,7 @@
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
         <div class="form-group">
-          <label>Phone Number *</label>
+          <label>Phone Number <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
           {{ guest_form.phone_number }}
           {% for e in guest_form.phone_number.errors %}<p class="form-error">{{ e }}</p>{% endfor %}
         </div>

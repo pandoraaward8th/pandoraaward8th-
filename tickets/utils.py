@@ -328,9 +328,10 @@ def generate_ticket_pdf(ticket) -> bytes:
         c.setFillColor(name_color)
         for ox, oy in offsets:
             c.drawString(name_x + ox, name_y + oy, guest_name[:40])
-        c.drawString(name_x, name_y, guest_name[:40]) (stub QR placeholder box) ────────────────────
-    # The gold-bordered empty box on the stub.
-    # Centre: x ≈ 87.5 % of ticket width, y ≈ 50 % of ticket height.
+        c.drawString(name_x, name_y, guest_name[:40])
+
+    # QR code overlay
+    # Centre: x ~87.5% of ticket width, y ~50% of ticket height.
     qr_cx = TICKET_W * qr_cx_pct
     qr_cy = TICKET_H * qr_cy_pct
     qr_x  = qr_cx - qr_w_pt / 2

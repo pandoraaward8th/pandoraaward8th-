@@ -80,9 +80,9 @@ def dashboard(request):
             qs = qs.exclude(guest=plain_placeholder)
         return qs
 
-    total          = real_tickets().count()
     plain_total    = Ticket.objects.filter(guest=plain_placeholder).count() if plain_placeholder else 0
-    named_total    = total - plain_total
+    named_total    = real_tickets().count()   # real named guests only
+    total          = named_total              # total shown on dashboard = named only
 
     pre_reg        = real_tickets().filter(guest__registration_source='PRE_REGISTERED').count()
     walk_in        = real_tickets().filter(guest__registration_source='WALK_IN').count()
@@ -94,21 +94,26 @@ def dashboard(request):
     # Breakdown by ticket type — only Regular, VIP, Table of Ten
     # Excludes: Special Guest Seat, complimentary, plain placeholder tickets
     COUNTED_TYPES = ['Regular', 'VIP', 'Table of Ten']
+    if plain_placeholder:
+        breakdown_filter_total = Q(tickets__is_complimentary=False) & ~Q(tickets__guest=plain_placeholder)
+        breakdown_filter_used  = Q(tickets__status='USED') & Q(tickets__is_complimentary=False) & ~Q(tickets__guest=plain_placeholder)
+    else:
+        breakdown_filter_total = Q(tickets__is_complimentary=False)
+        breakdown_filter_used  = Q(tickets__status='USED') & Q(tickets__is_complimentary=False)
+
     breakdown = (
         TicketType.objects.filter(active=True, name__in=COUNTED_TYPES)
         .annotate(
-            total=Count('tickets', filter=Q(tickets__is_complimentary=False) & ~Q(tickets__guest=plain_placeholder) if plain_placeholder else Q(tickets__is_complimentary=False)),
-            used=Count('tickets', filter=Q(tickets__status='USED', tickets__is_complimentary=False) & ~Q(tickets__guest=plain_placeholder) if plain_placeholder else Q(tickets__status='USED', tickets__is_complimentary=False)),
+            total=Count('tickets', filter=breakdown_filter_total),
+            used=Count('tickets',  filter=breakdown_filter_used),
         )
         .values('name', 'total', 'used')
     )
 
-    # Recent check-ins — excludes complimentary
-    recent_checkins = (
-        Ticket.objects.filter(status='USED', is_complimentary=False)
-        .select_related('guest', 'ticket_type', 'checked_in_by')
-        .order_by('-checked_in_at')[:10]
-    )
+    # Recent check-ins — excludes complimentary and plain
+    recent_checkins = real_tickets().filter(status='USED').select_related(
+        'guest', 'ticket_type', 'checked_in_by'
+    ).order_by('-checked_in_at')[:10]
 
     ctx = {
         'active_event':    active_event,

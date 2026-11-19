@@ -187,18 +187,20 @@ def guest_create(request):
                     messages.error(request, f"{field}: {error}")
     else:
         guest_form = GuestRegistrationForm()
-        # Pre-select ticket type if passed via URL param
-        type_param = request.GET.get('type', '').strip()
-        ticket_form = TicketCreateForm()
+        type_param  = request.GET.get('type', '').strip()
+        preset_type = ''
+        initial     = {}
         if type_param:
             from .models import TicketType as TT
             ttype = TT.objects.filter(name__iexact=type_param, active=True).first()
             if ttype:
-                ticket_form.fields['ticket_type'].initial = ttype.pk
+                initial     = {'ticket_type': ttype}
+                preset_type = ttype.name
+        ticket_form = TicketCreateForm(initial=initial)
     return render(request, 'tickets/guest_create.html', {
         'guest_form':  guest_form,
         'ticket_form': ticket_form,
-        'preset_type': request.GET.get('type', ''),
+        'preset_type': preset_type if 'preset_type' in dir() else '',
     })
 
 

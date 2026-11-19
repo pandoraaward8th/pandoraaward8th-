@@ -296,13 +296,17 @@ def generate_ticket_pdf(ticket) -> bytes:
         # Strip runs from x≈8% to x≈73%, y≈10%–17% from bottom (ReportLab coords)
         ttype_upper = ticket.ticket_type.name.upper()
         if 'SPECIAL' in ttype_upper:
-            cover_color = colors.Color(4/255, 21/255, 2/255)    # dark green
+            cover_color = colors.Color(4/255, 21/255, 2/255)
+            name_color  = colors.Color(209/255, 153/255, 53/255)   # Special Guest gold
         elif 'VIP' in ttype_upper:
-            cover_color = colors.Color(5/255, 3/255, 4/255)     # near black
+            cover_color = colors.Color(5/255, 3/255, 4/255)
+            name_color  = colors.Color(251/255, 156/255, 34/255)   # VIP gold
         elif 'TABLE' in ttype_upper:
-            cover_color = colors.Color(8/255, 0/255, 3/255)     # dark maroon
+            cover_color = colors.Color(8/255, 0/255, 3/255)
+            name_color  = colors.Color(236/255, 168/255, 56/255)   # Table gold
         else:
-            cover_color = colors.Color(250/255, 248/255, 239/255)  # Regular off-white
+            cover_color = colors.Color(250/255, 248/255, 239/255)
+            name_color  = colors.Color(209/255, 128/255, 17/255)   # Regular gold
 
         strip_x1 = TICKET_W * 0.07
         strip_y1 = TICKET_H * 0.09
@@ -324,9 +328,7 @@ def generate_ticket_pdf(ticket) -> bytes:
         c.setFillColor(name_color)
         for ox, oy in offsets:
             c.drawString(name_x + ox, name_y + oy, guest_name[:40])
-        c.drawString(name_x, name_y, guest_name[:40])
-
-    # ── 3. QR code overlay (stub QR placeholder box) ────────────────────
+        c.drawString(name_x, name_y, guest_name[:40]) (stub QR placeholder box) ────────────────────
     # The gold-bordered empty box on the stub.
     # Centre: x ≈ 87.5 % of ticket width, y ≈ 50 % of ticket height.
     qr_cx = TICKET_W * qr_cx_pct

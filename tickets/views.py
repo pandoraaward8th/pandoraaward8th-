@@ -93,7 +93,7 @@ def dashboard(request):
 
     # Breakdown by ticket type — only Regular, VIP, Table of Ten
     # Excludes: Special Guest Seat, complimentary, plain placeholder tickets
-    COUNTED_TYPES = ['Regular', 'VIP', 'Table of Ten']
+    COUNTED_TYPES = ['Regular', 'VIP', 'Table of Ten', 'Special Guest Seat']
     if plain_placeholder:
         breakdown_filter_total = Q(tickets__is_complimentary=False) & ~Q(tickets__guest=plain_placeholder)
         breakdown_filter_used  = Q(tickets__status='USED') & Q(tickets__is_complimentary=False) & ~Q(tickets__guest=plain_placeholder)

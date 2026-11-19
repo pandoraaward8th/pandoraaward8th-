@@ -78,10 +78,11 @@
           {% for row in breakdown %}
           <tr style="cursor:pointer;" onclick="window.location='{% url 'ticket_list' %}?type={{ row.name }}'">
             <td>
-              <a href="{% url 'ticket_list' %}?type={{ row.name }}" style="color:var(--gold-light);font-weight:600;text-decoration:none;">
+              <a href="{% url 'ticket_list' %}?type={{ row.name }}" style="font-weight:600;text-decoration:none;{% if row.name == 'Special Guest Seat' %}color:#c0c0c0;{% else %}color:var(--gold-light);{% endif %}">
                 {% if row.name == 'Regular' %}<i class="bi bi-ticket"></i>
                 {% elif row.name == 'VIP' %}<i class="bi bi-star-fill"></i>
                 {% elif 'Table' in row.name %}<i class="bi bi-people-fill"></i>
+                {% elif 'Special' in row.name %}<i class="bi bi-star-fill" style="color:#c0c0c0;"></i>
                 {% else %}<i class="bi bi-tag"></i>{% endif %}
                 {{ row.name }}
               </a>

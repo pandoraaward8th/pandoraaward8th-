@@ -102,6 +102,12 @@ TICKET_REGISTER = [
     ("Hajjo beauty",                 0, 1, 0),
     ("Zaleena",                      1, 0, 0),
     ("MARYAM AB YOLA",               1, 0, 0),
+    # ── New additions ──────────────────────────────────────────────────
+    ("UMAR BIG SHOW",                1, 0, 0),
+    ("FATIMA ALKALI AJI",            0, 0, 1),
+    ("FRESH BUZEEZ",                 1, 0, 0),
+    ("HAJ. AMINA YUSUF SHITTU",      1, 0, 0),
+    ("MUSTY GWAGWA",                 1, 0, 0),
 ]
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -193,6 +199,19 @@ def metallic_gold_layers(ticket_type):
             (-3,-3,  (210, 150, 40,  200)),
         ]
 
+SERIAL_PREFIX = {
+    'Special Guest Seat': 'SP',
+    'VIP':                'VIP',
+    'Table of Ten':       'TBL',
+}
+
+# Serial y position per type (from top of image)
+SERIAL_Y = {
+    'Special Guest Seat': 0.870,
+    'VIP':                0.835,
+    'Table of Ten':       0.870,
+}
+
 def make_qr(token, size_px):
     url = f"{SITE_URL}/verify/qr/{token}/"
     qr  = qrcode.QRCode(version=1,
@@ -208,7 +227,7 @@ def make_ticket_number():
     suffix = ''.join(secrets.choice(chars) for _ in range(6))
     return f"PDR26-{suffix}"
 
-def make_named_ticket(guest_name, ticket_type, qr_token):
+def make_named_ticket(guest_name, ticket_type, qr_token, serial=''):
     cfg     = TYPE_CONFIG[ticket_type]
     bg_path = os.path.join(IMG_DIR, cfg['bg'])
     bg      = Image.open(bg_path).convert('RGBA')
@@ -224,11 +243,10 @@ def make_named_ticket(guest_name, ticket_type, qr_token):
     draw = ImageDraw.Draw(bg)
 
     # ── Cover TICKET HOLDER strip ────────────────────────────────────────
-    # PIL y=0 at TOP; strip is at bottom ~82-92% of height from top
     strip_x1 = int(w * 0.07)
-    strip_y1 = int(h * 0.818)   # top of strip (from top)
+    strip_y1 = int(h * 0.818)
     strip_x2 = int(w * 0.735)
-    strip_y2 = int(h * 0.920)   # bottom of strip
+    strip_y2 = int(h * 0.920)
     cr, cg, cb = cfg['cover_color']
     draw.rectangle([strip_x1, strip_y1, strip_x2, strip_y2],
                    fill=(cr, cg, cb, 255))
@@ -238,7 +256,6 @@ def make_named_ticket(guest_name, ticket_type, qr_token):
     max_w   = strip_x2 - strip_x1 - 16
     strip_h = strip_y2 - strip_y1
 
-    # Auto-fit font size using Impact
     font_size = int(strip_h * 0.82)
     while font_size > 8:
         font = get_font(font_size)
@@ -251,9 +268,21 @@ def make_named_ticket(guest_name, ticket_type, qr_token):
     nx = strip_x1 + 10
     ny = strip_y1 + (strip_h - text_h) // 2 - bbox[1]
 
-    # 3D metallic gold — layer by layer
     for ox, oy, color in metallic_gold_layers(ticket_type):
         draw.text((nx + ox, ny + oy), name, font=font, fill=color)
+
+    # ── Serial number on stub — centred, same metallic gold ──────────────
+    if serial:
+        stub_x1  = int(w * 0.755)
+        stub_cx  = (stub_x1 + w) // 2
+        ser_y    = int(h * SERIAL_Y[ticket_type])
+        ser_size = int(h * 0.052)
+        ser_font = get_font(ser_size)
+        ser_bbox = draw.textbbox((0, 0), serial, font=ser_font)
+        ser_w    = ser_bbox[2] - ser_bbox[0]
+        ser_x    = stub_cx - ser_w // 2
+        for ox, oy, color in metallic_gold_layers(ticket_type):
+            draw.text((ser_x + ox, ser_y + oy), serial, font=ser_font, fill=color)
 
     return bg.convert('RGB')
 
@@ -281,6 +310,9 @@ def main():
     total = len(tickets)
     print(f"  Total tickets to generate: {total}")
 
+    # Serial counters per type
+    serial_counters = {'Special Guest Seat': 0, 'VIP': 0, 'Table of Ten': 0}
+
     # Also save a CSV for database import
     csv_rows = []
     done = 0
@@ -293,12 +325,17 @@ def main():
             ticket_number = make_ticket_number()
         used_numbers.add(ticket_number)
 
+        # Serial number
+        serial_counters[ticket_type] += 1
+        prefix = SERIAL_PREFIX[ticket_type]
+        serial = f"{prefix}-{serial_counters[ticket_type]:03d}"
+
         cfg    = TYPE_CONFIG[ticket_type]
         folder = cfg['folder']
         safe_name = guest_name.replace(' ', '_').replace('/', '-').replace('.', '').replace("'", '')
-        fname  = f"{safe_name}_{ticket_number}.png"
+        fname  = f"{serial}_{safe_name}_{ticket_number}.png"
 
-        img = make_named_ticket(guest_name, ticket_type, qr_token)
+        img = make_named_ticket(guest_name, ticket_type, qr_token, serial)
         img.save(os.path.join(OUT_DIR, folder, fname), 'PNG', dpi=(300, 300))
 
         csv_rows.append({

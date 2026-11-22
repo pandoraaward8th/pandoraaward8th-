@@ -323,20 +323,20 @@ def ticket_detail(request, pk):
 def ticket_download(request, pk):
     ticket = get_object_or_404(Ticket, pk=pk)
     # All logged-in roles may download
-    pdf_bytes = generate_ticket_pdf(ticket)
-    response = HttpResponse(pdf_bytes, content_type='application/pdf')
-    fname = f"Pandora_Ticket_{ticket.ticket_number}.pdf"
+    png_bytes = generate_ticket_pdf(ticket)
+    response = HttpResponse(png_bytes, content_type='image/png')
+    fname = f"Pandora_Ticket_{ticket.ticket_number}.png"
     response['Content-Disposition'] = f'attachment; filename="{fname}"'
     return response
 
 
 @login_required
 def ticket_view_pdf(request, pk):
-    """Inline PDF view (for preview in browser)."""
+    """Inline ticket view (for preview in browser)."""
     ticket = get_object_or_404(Ticket, pk=pk)
-    pdf_bytes = generate_ticket_pdf(ticket)
-    response = HttpResponse(pdf_bytes, content_type='application/pdf')
-    fname = f"Pandora_Ticket_{ticket.ticket_number}.pdf"
+    png_bytes = generate_ticket_pdf(ticket)
+    response = HttpResponse(png_bytes, content_type='image/png')
+    fname = f"Pandora_Ticket_{ticket.ticket_number}.png"
     response['Content-Disposition'] = f'inline; filename="{fname}"'
     return response
 

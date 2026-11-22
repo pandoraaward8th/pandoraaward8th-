@@ -7,6 +7,7 @@ import io
 import os
 import urllib.request
 import qrcode
+from PIL import Image, ImageDraw, ImageFont
 from django.conf import settings
 
 SITE_URL = 'https://pandoraaward8th.onrender.com'
@@ -127,7 +128,7 @@ TICKET_CONFIG = {
     # ── SPECIAL GUEST ────────────────────────────────────────────────────────
     # Dark green/gold ticket, black TICKET HOLDER bar - use gold text
     'SPECIAL GUEST': {
-        'bg':            'Pandora Awards SPecial guestTicket Poster.png',
+        'bg':            'Pandora Awards SPecial guestTicket Poster  .jpeg',
         'name_color':    '#d4a825',
         'qr_cx_pct':     0.870,
         'qr_cy_pct':     0.393,
@@ -137,7 +138,7 @@ TICKET_CONFIG = {
         'name_y_pct':    0.1286,
     },
     'SPECIAL GUEST SEAT': {
-        'bg':            'Pandora Awards SPecial guestTicket Poster.png',
+        'bg':            'Pandora Awards SPecial guestTicket Poster  .jpeg',
         'name_color':    '#d4a825',
         'qr_cx_pct':     0.870,
         'qr_cy_pct':     0.393,
@@ -235,117 +236,136 @@ def _get_photo_reader(photo_field):
 # ---------------------------------------------------------------------------
 
 def generate_ticket_pdf(ticket) -> bytes:
-    from reportlab.lib.units import inch
-    from reportlab.lib import colors
-    from reportlab.lib.utils import ImageReader
-    from reportlab.pdfgen import canvas
+    """
+    Generate a ticket image using Pillow + Impact font (matches bulk PNG design).
+    Returns PNG bytes wrapped in a minimal PDF so the browser can download it.
+    Actually returns PNG bytes directly — views serve it as image/png.
+    """
+    from PIL import Image, ImageDraw, ImageFont
 
     ttype = ticket.ticket_type.name.upper()
     cfg   = TICKET_CONFIG.get(ttype, DEFAULT_CONFIG)
 
-    bg_path    = os.path.join(settings.BASE_DIR, 'static', 'img', cfg['bg'])
-    name_color = colors.HexColor(cfg['name_color'])
+    bg_path = os.path.join(settings.BASE_DIR, 'static', 'img', cfg['bg'])
 
-    # Per-ticket QR box settings
-    qr_cx_pct = cfg.get('qr_cx_pct', QR_CX_PCT)
-    qr_cy_pct = cfg.get('qr_cy_pct', QR_CY_PCT)
-    qr_w_pt   = cfg.get('qr_w_in', 1.177) * IN
-    qr_h_pt   = cfg.get('qr_h_in', 0.642) * IN
+    # ── Metallic gold layers per ticket type ─────────────────────────────
+    def metallic_layers(t):
+        if 'SPECIAL' in t:
+            return [(3,3,(20,8,0,220)),(2,2,(50,22,0,230)),(0,0,(110,60,0,255)),
+                    (-1,-1,(160,95,15,255)),(-2,-2,(195,130,30,255)),(-3,-3,(220,160,55,200))]
+        elif 'VIP' in t:
+            return [(3,3,(20,8,0,220)),(2,2,(50,22,0,230)),(0,0,(110,65,0,255)),
+                    (-1,-1,(170,100,10,255)),(-2,-2,(200,135,25,255)),(-3,-3,(225,165,50,200))]
+        elif 'TABLE' in t:
+            return [(3,3,(20,8,0,220)),(2,2,(50,22,0,230)),(0,0,(100,55,0,255)),
+                    (-1,-1,(155,90,10,255)),(-2,-2,(190,125,25,255)),(-3,-3,(215,155,45,200))]
+        else:
+            return [(3,3,(20,8,0,220)),(2,2,(50,22,0,230)),(0,0,(100,55,0,255)),
+                    (-1,-1,(155,90,5,255)),(-2,-2,(185,120,20,255)),(-3,-3,(210,150,40,200))]
 
-    # Per-ticket name strip position (falls back to global defaults)
-    name_x_pct = cfg.get('name_x_pct', NAME_X_PCT)
-    name_y_pct = cfg.get('name_y_pct', NAME_Y_PCT)
+    def draw_m(draw, text, x, y, font, t):
+        for ox, oy, color in metallic_layers(t):
+            draw.text((x+ox, y+oy), text, font=font, fill=color)
 
-    buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=(TICKET_W, TICKET_H))
+    def get_font(size):
+        for path in ['C:/Windows/Fonts/impact.ttf',
+                     '/usr/share/fonts/truetype/msttcorefonts/Impact.ttf',
+                     '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf']:
+            if os.path.exists(path):
+                try:
+                    return ImageFont.truetype(path, size)
+                except Exception:
+                    pass
+        return ImageFont.load_default()
 
-    # ── 1. Full-page background image ────────────────────────────────────
-    # Use mask='auto' only for PNG (supports alpha); JPEGs have no alpha channel
-    # and mask='auto' causes ReportLab to render them blank.
-    if os.path.exists(bg_path):
-        is_png = bg_path.lower().endswith('.png')
-        c.drawImage(
-            ImageReader(bg_path),
-            0, 0, TICKET_W, TICKET_H,
-            preserveAspectRatio=False,
-            mask='auto' if is_png else None,
-        )
+    if not os.path.exists(bg_path):
+        # Fallback — plain white image
+        bg = Image.new('RGB', (1280, 640), (245, 240, 232))
     else:
-        # Fallback plain bg
-        c.setFillColor(colors.HexColor('#f5f0e8'))
-        c.rect(0, 0, TICKET_W, TICKET_H, fill=1, stroke=0)
+        bg = Image.open(bg_path).convert('RGBA')
 
-    # ── 2. Guest name overlay ────────────────────────────────────────────
-    # Print name only for real named guests — not for plain or complimentary
+    w, h = bg.size
+    draw = ImageDraw.Draw(bg)
+
     is_plain = (
         ticket.guest.full_name in ('Pandora Guest', 'Complimentary Guest') or
         getattr(ticket, 'is_complimentary', False)
     )
 
+    # ── QR code ──────────────────────────────────────────────────────────
+    if 'SPECIAL' in ttype:
+        # New Special Guest ticket — exact pixel placement
+        stub_cx = (int(w*0.76)+w)//2
+        qr_w_px, qr_h_px = 190, 170
+        qr_x = stub_cx - qr_w_px//2 + 20
+        qr_y = 280
+    else:
+        qr_cx_pct = cfg.get('qr_cx_pct', 0.858)
+        qr_cy_pct = cfg.get('qr_cy_pct', 0.607)
+        qr_w_px   = int(w * cfg.get('qr_w_pct', 0.1384)) if 'qr_w_pct' in cfg else int(w * cfg.get('qr_w_in', 1.177) / 8.0)
+        qr_h_px   = int(h * cfg.get('qr_h_pct', 0.2140)) if 'qr_h_pct' in cfg else int(h * cfg.get('qr_h_in', 0.642) / 3.0)
+        qr_size   = min(qr_w_px, qr_h_px)
+        qr_x      = int(w * qr_cx_pct) - qr_size // 2
+        qr_y      = int(h * (1 - qr_cy_pct)) - qr_size // 2
+        qr_w_px = qr_h_px = qr_size
+
+    qr_png  = generate_qr_image(ticket.qr_token, size=10)
+    qr_img  = Image.open(io.BytesIO(qr_png)).convert('RGBA')
+    qr_img  = qr_img.resize((qr_w_px, qr_h_px), Image.LANCZOS)
+    bg.paste(qr_img, (qr_x, qr_y))
+
+    # ── Guest name ────────────────────────────────────────────────────────
     if not is_plain:
         guest_name = ticket.guest.full_name.upper()
 
-        # Font size — scales with name length
-        if   len(guest_name) <= 10: name_pt = 28
-        elif len(guest_name) <= 16: name_pt = 24
-        elif len(guest_name) <= 22: name_pt = 20
-        elif len(guest_name) <= 30: name_pt = 17
-        else:                       name_pt = 14
-
-        # Cover "TICKET HOLDER" text with background-coloured rectangle
-        # Strip runs from x≈8% to x≈73%, y≈10%–17% from bottom (ReportLab coords)
-        ttype_upper = ticket.ticket_type.name.upper()
-        if 'SPECIAL' in ttype_upper:
-            cover_color = colors.Color(4/255, 21/255, 2/255)
-            name_color  = colors.Color(209/255, 153/255, 53/255)   # Special Guest gold
-        elif 'VIP' in ttype_upper:
-            cover_color = colors.Color(5/255, 3/255, 4/255)
-            name_color  = colors.Color(251/255, 156/255, 34/255)   # VIP gold
-        elif 'TABLE' in ttype_upper:
-            cover_color = colors.Color(8/255, 0/255, 3/255)
-            name_color  = colors.Color(236/255, 168/255, 56/255)   # Table gold
+        if 'SPECIAL' in ttype:
+            # New Special Guest ticket layout
+            stub_cx = (int(w*0.76)+w)//2
+            sx1,sy1 = int(w*0.08), int(h*0.790)
+            sx2,sy2 = int(w*0.70), int(h*0.930)
+            strip_h = sy2-sy1
+            fs = int(strip_h*0.82)
+            while fs > 8:
+                fn = get_font(fs)
+                bbox = draw.textbbox((0,0), guest_name, font=fn)
+                if (bbox[2]-bbox[0]) <= (sx2-sx1-16): break
+                fs -= 1
+            bbox = draw.textbbox((0,0), guest_name, font=fn)
+            ny = sy1 + (strip_h-(bbox[3]-bbox[1]))//2 - bbox[1]
+            draw_m(draw, guest_name, sx1+10, ny, fn, ttype)
         else:
-            cover_color = colors.Color(250/255, 248/255, 239/255)
-            name_color  = colors.Color(209/255, 128/255, 17/255)   # Regular gold
+            # Other ticket types
+            if 'VIP' in ttype:
+                sx1,sy1 = int(w*0.07), int(h*0.818)
+                sx2,sy2 = int(w*0.735), int(h*0.920)
+            elif 'TABLE' in ttype:
+                sx1,sy1 = int(w*0.07), int(h*0.818)
+                sx2,sy2 = int(w*0.735), int(h*0.920)
+            else:
+                sx1,sy1 = int(w*0.07), int(h*0.818)
+                sx2,sy2 = int(w*0.735), int(h*0.920)
 
-        strip_x1 = TICKET_W * 0.07
-        strip_y1 = TICKET_H * 0.09
-        strip_x2 = TICKET_W * 0.73
-        strip_y2 = TICKET_H * 0.19
-        c.setFillColor(cover_color)
-        c.rect(strip_x1, strip_y1, strip_x2 - strip_x1, strip_y2 - strip_y1, fill=1, stroke=0)
+            strip_h = sy2-sy1
+            # Cover TICKET HOLDER text
+            if 'VIP' in ttype:    cov=(5,3,4)
+            elif 'TABLE' in ttype: cov=(8,0,3)
+            else:                   cov=(250,248,239)
+            draw.rectangle([sx1,sy1,sx2,sy2], fill=cov+(255,))
 
-        # Draw name in the cleared area — centred vertically in strip
-        name_x = strip_x1 + 8
-        name_y = strip_y1 + (strip_y2 - strip_y1 - name_pt) / 2
+            fs = int(strip_h*0.82)
+            while fs > 8:
+                fn = get_font(fs)
+                bbox = draw.textbbox((0,0), guest_name, font=fn)
+                if (bbox[2]-bbox[0]) <= (sx2-sx1-16): break
+                fs -= 1
+            bbox = draw.textbbox((0,0), guest_name, font=fn)
+            ny = sy1 + (strip_h-(bbox[3]-bbox[1]))//2 - bbox[1]
+            draw_m(draw, guest_name, sx1+10, ny, fn, ttype)
 
-        c.setFont('Helvetica-Bold', name_pt)
-        # Multi-pass thick bold
-        offsets = [
-            (-1.0, -1.0), (1.0, -1.0), (-1.0, 1.0), (1.0, 1.0),
-            (-1.2,  0.0), (1.2,  0.0), (0.0, -1.2), (0.0,  1.2),
-        ]
-        c.setFillColor(name_color)
-        for ox, oy in offsets:
-            c.drawString(name_x + ox, name_y + oy, guest_name[:40])
-        c.drawString(name_x, name_y, guest_name[:40])
-
-    # QR code overlay
-    # Centre: x ~87.5% of ticket width, y ~50% of ticket height.
-    qr_cx = TICKET_W * qr_cx_pct
-    qr_cy = TICKET_H * qr_cy_pct
-    qr_x  = qr_cx - qr_w_pt / 2
-    qr_y  = qr_cy - qr_h_pt / 2
-
-    qr_bytes = generate_qr_image(ticket.qr_token, size=10)
-    c.drawImage(
-        ImageReader(io.BytesIO(qr_bytes)),
-        qr_x, qr_y,
-        qr_w_pt, qr_h_pt,
-    )
-
-    c.save()
-    return buf.getvalue()
+    # ── Convert to PNG bytes ──────────────────────────────────────────────
+    out = io.BytesIO()
+    bg.convert('RGB').save(out, format='PNG', dpi=(300,300))
+    return out.getvalue()
 
 
 def _draw_photo_placeholder(c, x, y, w, h):

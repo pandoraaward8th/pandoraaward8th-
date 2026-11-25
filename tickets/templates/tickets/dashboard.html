@@ -22,6 +22,10 @@
 
 <!-- Stats Grid -->
 <div class="stat-grid">
+  <div class="stat-card" style="border-color:var(--gold);">
+    <div class="stat-value" style="color:var(--gold);">{{ named_total|add:plain_total }}</div>
+    <div class="stat-label">Total Tickets</div>
+  </div>
   <div class="stat-card">
     <div class="stat-value">{{ named_total }}</div>
     <div class="stat-label">Named Registrations</div>

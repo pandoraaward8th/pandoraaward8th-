@@ -270,13 +270,20 @@ def generate_ticket_pdf(ticket) -> bytes:
     def get_font(size):
         for path in ['C:/Windows/Fonts/impact.ttf',
                      '/usr/share/fonts/truetype/msttcorefonts/Impact.ttf',
-                     '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf']:
+                     '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf',
+                     '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+                     '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
+                     '/usr/share/fonts/truetype/ubuntu/Ubuntu-B.ttf']:
             if os.path.exists(path):
                 try:
                     return ImageFont.truetype(path, size)
                 except Exception:
                     pass
-        return ImageFont.load_default()
+        # Last resort — use default but scale it up
+        try:
+            return ImageFont.load_default(size=size)
+        except Exception:
+            return ImageFont.load_default()
 
     if not os.path.exists(bg_path):
         # Fallback — plain white image
@@ -363,6 +370,21 @@ def generate_ticket_pdf(ticket) -> bytes:
             draw_m(draw, guest_name, sx1+10, ny, fn, ttype)
 
     # ── Convert to PNG bytes ──────────────────────────────────────────────
+    # Add ticket number on stub as serial reference
+    if not is_plain:
+        stub_cx2 = (int(w*0.755)+w)//2
+        if 'SPECIAL' in ttype:
+            ser_y = int(h*0.880)
+            ser_size = int(h*0.065)
+        else:
+            ser_y = int(h*0.835) if 'VIP' in ttype else int(h*0.855)
+            ser_size = int(h*0.052)
+        ser_fn   = get_font(ser_size)
+        ser_text = ticket.ticket_number
+        ser_bbox = draw.textbbox((0,0), ser_text, font=ser_fn)
+        ser_x    = stub_cx2 - (ser_bbox[2]-ser_bbox[0])//2
+        draw_m(draw, ser_text, ser_x, ser_y, ser_fn, ttype)
+
     out = io.BytesIO()
     bg.convert('RGB').save(out, format='PNG', dpi=(300,300))
     return out.getvalue()

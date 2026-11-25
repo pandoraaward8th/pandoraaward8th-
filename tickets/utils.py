@@ -331,12 +331,12 @@ def generate_ticket_pdf(ticket) -> bytes:
             sx1,sy1 = int(w*0.08), int(h*0.790)
             sx2,sy2 = int(w*0.70), int(h*0.930)
             strip_h = sy2-sy1
-            fs = int(strip_h*0.82)
+            fs = int(strip_h*0.65)  # start smaller
             while fs > 8:
                 fn = get_font(fs)
                 bbox = draw.textbbox((0,0), guest_name, font=fn)
-                if (bbox[2]-bbox[0]) <= (sx2-sx1-16): break
-                fs -= 1
+                if (bbox[2]-bbox[0]) <= (sx2-sx1-20): break
+                fs -= 2
             bbox = draw.textbbox((0,0), guest_name, font=fn)
             ny = sy1 + (strip_h-(bbox[3]-bbox[1]))//2 - bbox[1]
             draw_m(draw, guest_name, sx1+10, ny, fn, ttype)
@@ -359,12 +359,12 @@ def generate_ticket_pdf(ticket) -> bytes:
             else:                   cov=(250,248,239)
             draw.rectangle([sx1,sy1,sx2,sy2], fill=cov+(255,))
 
-            fs = int(strip_h*0.82)
+            fs = int(strip_h*0.65)  # start smaller
             while fs > 8:
                 fn = get_font(fs)
                 bbox = draw.textbbox((0,0), guest_name, font=fn)
-                if (bbox[2]-bbox[0]) <= (sx2-sx1-16): break
-                fs -= 1
+                if (bbox[2]-bbox[0]) <= (sx2-sx1-20): break
+                fs -= 2
             bbox = draw.textbbox((0,0), guest_name, font=fn)
             ny = sy1 + (strip_h-(bbox[3]-bbox[1]))//2 - bbox[1]
             draw_m(draw, guest_name, sx1+10, ny, fn, ttype)

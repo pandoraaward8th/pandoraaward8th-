@@ -372,33 +372,39 @@ def generate_ticket_pdf(ticket) -> bytes:
     # ── Serial number on stub ─────────────────────────────────────────────
     if not is_plain:
         from tickets.models import Ticket as TicketModel
-        # Generate serial based on ticket type prefix and position
+        # Count ALL named tickets of this type ordered by id
+        # This includes both CSV-imported and portal-registered tickets
+        # giving a continuous serial across both methods
         if 'SPECIAL' in ttype:
             prefix = 'SP'
-            count  = TicketModel.objects.filter(
-                ticket_type__name__icontains='Special', is_complimentary=False
-            ).exclude(guest__full_name='Pandora Guest').order_by('id').values_list('id', flat=True)
+            qs = TicketModel.objects.filter(
+                ticket_type__name__icontains='Special',
+                is_complimentary=False
+            ).exclude(guest__full_name='Pandora Guest').order_by('id')
         elif 'VIP' in ttype:
             prefix = 'VIP'
-            count  = TicketModel.objects.filter(
-                ticket_type__name='VIP', is_complimentary=False
-            ).exclude(guest__full_name='Pandora Guest').order_by('id').values_list('id', flat=True)
+            qs = TicketModel.objects.filter(
+                ticket_type__name='VIP',
+                is_complimentary=False
+            ).exclude(guest__full_name='Pandora Guest').order_by('id')
         elif 'TABLE' in ttype:
             prefix = 'TBL'
-            count  = TicketModel.objects.filter(
-                ticket_type__name='Table of Ten', is_complimentary=False
-            ).exclude(guest__full_name='Pandora Guest').order_by('id').values_list('id', flat=True)
+            qs = TicketModel.objects.filter(
+                ticket_type__name='Table of Ten',
+                is_complimentary=False
+            ).exclude(guest__full_name='Pandora Guest').order_by('id')
         else:
             prefix = 'REG'
-            count  = TicketModel.objects.filter(
-                ticket_type__name='Regular', is_complimentary=False
-            ).exclude(guest__full_name='Pandora Guest').order_by('id').values_list('id', flat=True)
+            qs = TicketModel.objects.filter(
+                ticket_type__name='Regular',
+                is_complimentary=False
+            ).exclude(guest__full_name='Pandora Guest').order_by('id')
 
-        id_list = list(count)
+        id_list = list(qs.values_list('id', flat=True))
         try:
             pos = id_list.index(ticket.id) + 1
         except ValueError:
-            pos = len(id_list)
+            pos = len(id_list) + 1
         serial_text = f'{prefix}-{pos:03d}'
 
         stub_cx2 = (int(w*0.755)+w)//2

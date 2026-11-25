@@ -82,7 +82,7 @@ def dashboard(request):
 
     plain_total    = Ticket.objects.filter(guest=plain_placeholder).count() if plain_placeholder else 0
     named_total    = real_tickets().count()   # real named guests only
-    total          = named_total              # total shown on dashboard = named only
+    total          = named_total + plain_total  # grand total shown on dashboard
 
     pre_reg        = real_tickets().filter(guest__registration_source='PRE_REGISTERED').count()
     walk_in        = real_tickets().filter(guest__registration_source='WALK_IN').count()
@@ -119,8 +119,7 @@ def dashboard(request):
         'active_event':    active_event,
         'total':           total,
         'plain_total':     plain_total,
-        'named_total':     named_total,
-        'pre_reg':         pre_reg,
+        'named_total':     named_total,        'pre_reg':         pre_reg,
         'walk_in':         walk_in,
         'verified':        verified,
         'checked_in':      checked_in,

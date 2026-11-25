@@ -369,21 +369,49 @@ def generate_ticket_pdf(ticket) -> bytes:
             ny = sy1 + (strip_h-(bbox[3]-bbox[1]))//2 - bbox[1]
             draw_m(draw, guest_name, sx1+10, ny, fn, ttype)
 
-    # ── Convert to PNG bytes ──────────────────────────────────────────────
-    # Add ticket number on stub as serial reference
+    # ── Serial number on stub ─────────────────────────────────────────────
     if not is_plain:
+        from tickets.models import Ticket as TicketModel
+        # Generate serial based on ticket type prefix and position
+        if 'SPECIAL' in ttype:
+            prefix = 'SP'
+            count  = TicketModel.objects.filter(
+                ticket_type__name__icontains='Special', is_complimentary=False
+            ).exclude(guest__full_name='Pandora Guest').order_by('id').values_list('id', flat=True)
+        elif 'VIP' in ttype:
+            prefix = 'VIP'
+            count  = TicketModel.objects.filter(
+                ticket_type__name='VIP', is_complimentary=False
+            ).exclude(guest__full_name='Pandora Guest').order_by('id').values_list('id', flat=True)
+        elif 'TABLE' in ttype:
+            prefix = 'TBL'
+            count  = TicketModel.objects.filter(
+                ticket_type__name='Table of Ten', is_complimentary=False
+            ).exclude(guest__full_name='Pandora Guest').order_by('id').values_list('id', flat=True)
+        else:
+            prefix = 'REG'
+            count  = TicketModel.objects.filter(
+                ticket_type__name='Regular', is_complimentary=False
+            ).exclude(guest__full_name='Pandora Guest').order_by('id').values_list('id', flat=True)
+
+        id_list = list(count)
+        try:
+            pos = id_list.index(ticket.id) + 1
+        except ValueError:
+            pos = len(id_list)
+        serial_text = f'{prefix}-{pos:03d}'
+
         stub_cx2 = (int(w*0.755)+w)//2
         if 'SPECIAL' in ttype:
-            ser_y = int(h*0.880)
+            ser_y    = int(h*0.880)
             ser_size = int(h*0.065)
         else:
-            ser_y = int(h*0.835) if 'VIP' in ttype else int(h*0.855)
+            ser_y    = int(h*0.835) if 'VIP' in ttype else int(h*0.855)
             ser_size = int(h*0.052)
         ser_fn   = get_font(ser_size)
-        ser_text = ticket.ticket_number
-        ser_bbox = draw.textbbox((0,0), ser_text, font=ser_fn)
+        ser_bbox = draw.textbbox((0,0), serial_text, font=ser_fn)
         ser_x    = stub_cx2 - (ser_bbox[2]-ser_bbox[0])//2
-        draw_m(draw, ser_text, ser_x, ser_y, ser_fn, ttype)
+        draw_m(draw, serial_text, ser_x, ser_y, ser_fn, ttype)
 
     out = io.BytesIO()
     bg.convert('RGB').save(out, format='PNG', dpi=(300,300))

@@ -91,15 +91,10 @@ def dashboard(request):
     not_checked_in = real_tickets().filter(status='ACTIVE').count()
     cancelled      = real_tickets().filter(status='CANCELLED').count()
 
-    # Breakdown by ticket type — only Regular, VIP, Table of Ten
-    # Excludes: Special Guest Seat, complimentary, plain placeholder tickets
+    # Breakdown by ticket type — includes ALL tickets (named + plain), excludes complimentary only
     COUNTED_TYPES = ['Regular', 'VIP', 'Table of Ten', 'Special Guest Seat']
-    if plain_placeholder:
-        breakdown_filter_total = Q(tickets__is_complimentary=False) & ~Q(tickets__guest=plain_placeholder)
-        breakdown_filter_used  = Q(tickets__status='USED') & Q(tickets__is_complimentary=False) & ~Q(tickets__guest=plain_placeholder)
-    else:
-        breakdown_filter_total = Q(tickets__is_complimentary=False)
-        breakdown_filter_used  = Q(tickets__status='USED') & Q(tickets__is_complimentary=False)
+    breakdown_filter_total = Q(tickets__is_complimentary=False)
+    breakdown_filter_used  = Q(tickets__status='USED') & Q(tickets__is_complimentary=False)
 
     breakdown = (
         TicketType.objects.filter(active=True, name__in=COUNTED_TYPES)
